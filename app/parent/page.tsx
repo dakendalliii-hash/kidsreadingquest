@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import PageContainer from "../components/PageContainer";
 
 export default function ParentPage() {

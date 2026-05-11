@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 import NavBar from "./components/NavBar";
 

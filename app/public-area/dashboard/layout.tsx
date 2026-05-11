@@ -1,0 +1,11 @@
+export default function PublicDashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="p-6">
+      {children}
+    </section>
+  );
+}
