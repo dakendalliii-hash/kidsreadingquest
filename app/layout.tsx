@@ -1,8 +1,17 @@
-import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 import NavBar from "./components/NavBar";
+import { ReactNode } from "react";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const metadata = {
+  title: "KidsReadQuest",
+  description: "A literacy adventure for kids",
+};
+
+interface RootLayoutProps {
+  children: ReactNode;
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body>

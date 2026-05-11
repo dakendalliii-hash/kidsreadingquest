@@ -1,10 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
+import NavBar from "@/app/components/NavBar";
+import { ReactNode } from "react";
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const supabase = createClient();
-  return <>{children}</>;
+interface AdminDashboardLayoutProps {
+  children: ReactNode;
+}
+
+export default function AdminDashboardLayout({ children }: AdminDashboardLayoutProps) {
+  return (
+    <div>
+      <NavBar />
+      <main className="p-6">{children}</main>
+    </div>
+  );
 }

@@ -1,8 +1,12 @@
-export default function PublicDashboardPage() {
+import { redirectIfUnauthorized } from "@/lib/auth/redirectIfUnauthorized";
+
+export default async function PublicDashboard() {
+  const user = await redirectIfUnauthorized();
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Public Dashboard</h1>
-      <p>This is the public dashboard area. No authentication required.</p>
+      <h1 className="text-2xl font-bold">Public Dashboard</h1>
+      <p>Welcome, {user.email}</p>
     </div>
   );
 }

@@ -1,4 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-export default function ParentDashboard() {
-  return <h2>Parent Dashboard (Business Rules Pending)</h2>;
+import { requireRole } from "@/lib/auth/requireRole";
+
+export default async function ParentDashboard() {
+  const user = await requireRole("parent");
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold">Parent Dashboard</h1>
+      <p>Welcome, {user.email}</p>
+    </div>
+  );
 }

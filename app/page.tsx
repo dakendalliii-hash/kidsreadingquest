@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import PageContainer from "./components/PageContainer";
 import Link from "next/link";
 

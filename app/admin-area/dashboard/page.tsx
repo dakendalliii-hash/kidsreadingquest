@@ -1,4 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-export default function AdminDashboard() {
-  return <h2>Admin Dashboard (Business Rules Pending)</h2>;
+import { requireRole } from "@/lib/auth/requireRole";
+
+export default async function AdminDashboard() {
+  const user = await requireRole("admin");
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+      <p>Welcome, {user.email}</p>
+    </div>
+  );
 }

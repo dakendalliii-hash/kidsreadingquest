@@ -1,5 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+
 export async function getUser() {
-  // Placeholder — will integrate with Supabase auth later
-  return null;
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user;
 }
