@@ -1,10 +1,14 @@
-import { getUser } from "@/lib/auth/getUser";
-import { getRole } from "@/lib/auth/getRole";
+// app/components/Sidebar.tsx
+"use client";
+
 import ResponsiveSidebar from "./ResponsiveSidebar";
+import type { User } from "@supabase/supabase-js";
 
-export default async function Sidebar() {
-  const user = await getUser();
-  const role = await getRole();
+interface SidebarProps {
+  user: User | null;
+  role: string | null;
+}
 
+export default function Sidebar({ user, role }: SidebarProps) {
   return <ResponsiveSidebar user={user} role={role} />;
 }

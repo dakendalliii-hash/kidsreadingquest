@@ -3,107 +3,164 @@
 import { useState } from "react";
 import Link from "next/link";
 
-interface ResponsiveNavBarProps {
-  user: any; // or better: SupabaseUser type if available
-  role: string | null;
+interface NavBarProps {
+  user?: any;
+  role?: string | null;
 }
 
-export default function ResponsiveNavBar({ user, role }: ResponsiveNavBarProps) {
+export default function NavBar({ user, role }: NavBarProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="bg-slate-900 text-white border-b border-slate-700 p-4">
-      {/* Desktop */}
-      <div className="hidden md:flex max-w-5xl mx-auto gap-6 items-center">
-        <Link href="/">Home</Link>
-        <Link href="/about">About</Link>
+    <header className="w-full bg-[#003366] py-4 shadow-md">
+      <nav className="max-w-7xl mx-auto flex items-center justify-between px-4">
 
-        {!user && (
-          <>
-            <Link href="/login">Login</Link>
-            <Link href="/signup">Sign Up</Link>
-          </>
-        )}
+        {/* Logo */}
+        <Link
+          href="/"
+          className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold hover:bg-[#003366] hover:text-white transition"
+        >
+          Kids Reading Quest
+        </Link>
 
-        {user && (
-          <>
-            {role === "admin" && (
-              <>
-                <Link href="/admin-area/dashboard">Admin Dashboard</Link>
-                <Link href="/parent-area/dashboard">Parent Dashboard</Link>
-                <Link href="/kid-area/dashboard">Kid Dashboard</Link>
-              </>
-            )}
-
-            {role === "parent" && (
-              <>
-                <Link href="/parent-area/dashboard">Parent Dashboard</Link>
-                <Link href="/kid-area/dashboard">Kid Dashboard</Link>
-              </>
-            )}
-
-            {role === "kid" && (
-              <>
-                <Link href="/kid-area/dashboard">Kid Dashboard</Link>
-              </>
-            )}
-
-            <Link href="/public-area/dashboard">Public Dashboard</Link>
-            <Link href="/logout">Logout</Link>
-          </>
-        )}
-      </div>
-
-      {/* Mobile */}
-      <div className="md:hidden flex justify-between items-center">
-        <span className="font-bold">Menu</span>
-        <button onClick={() => setOpen(!open)} className="text-xl">
+        {/* Hamburger (mobile only) */}
+        <button
+          className="md:hidden text-white text-3xl"
+          onClick={() => setOpen(!open)}
+        >
           ☰
         </button>
-      </div>
 
-      {/* Mobile dropdown */}
-      {open && (
-        <div className="md:hidden flex flex-col gap-4 mt-4">
-          <Link href="/">Home</Link>
-          <Link href="/about">About</Link>
+        {/* Desktop Menu */}
+        <div className="hidden md:flex gap-4 items-center">
+
+          <Link
+            href="/about"
+            className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold hover:bg-[#003366] hover:text-white transition"
+          >
+            About Us
+          </Link>
 
           {!user && (
             <>
-              <Link href="/login">Login</Link>
-              <Link href="/signup">Sign Up</Link>
+              <Link
+                href="/login"
+                className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold hover:bg-[#003366] hover:text-white transition"
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/signup"
+                className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold hover:bg-[#003366] hover:text-white transition"
+              >
+                Sign Up
+              </Link>
             </>
           )}
 
-          {user && (
-            <>
-              {role === "admin" && (
-                <>
-                  <Link href="/admin-area/dashboard">Admin Dashboard</Link>
-                  <Link href="/parent-area/dashboard">Parent Dashboard</Link>
-                  <Link href="/kid-area/dashboard">Kid Dashboard</Link>
-                </>
-              )}
+          {user && role === "admin" && (
+            <Link
+              href="/admin-area/dashboard"
+              className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold hover:bg-[#003366] hover:text-white transition"
+            >
+              Admin Dashboard
+            </Link>
+          )}
 
-              {role === "parent" && (
-                <>
-                  <Link href="/parent-area/dashboard">Parent Dashboard</Link>
-                  <Link href="/kid-area/dashboard">Kid Dashboard</Link>
-                </>
-              )}
+          {user && role === "parent" && (
+            <Link
+              href="/parent-area/dashboard"
+              className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold hover:bg-[#003366] hover:text-white transition"
+            >
+              Parent Dashboard
+            </Link>
+          )}
 
-              {role === "kid" && (
-                <>
-                  <Link href="/kid-area/dashboard">Kid Dashboard</Link>
-                </>
-              )}
-
-              <Link href="/public-area/dashboard">Public Dashboard</Link>
-              <Link href="/logout">Logout</Link>
-            </>
+          {user && role === "kid" && (
+            <Link
+              href="/kid-area/dashboard"
+              className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold hover:bg-[#003366] hover:text-white transition"
+            >
+              My Reading Quest
+            </Link>
           )}
         </div>
+      </nav>
+{user && (
+  <Link
+    href="/logout"
+    className="bg-red-600 text-white border-2 border-red-800 rounded-full px-4 py-2 font-semibold hover:bg-red-800 transition"
+  >
+    Logout
+  </Link>
+)}
+
+      {/* Mobile Menu */}
+      {open && (
+        <div className="md:hidden flex flex-col items-center gap-3 py-4 bg-[#003366]">
+          <Link
+            href="/about"
+            className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold w-40 text-center hover:bg-[#003366] hover:text-white transition"
+          >
+            About Us
+          </Link>
+
+          {!user && (
+            <>
+              <Link
+                href="/login"
+                className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold w-40 text-center hover:bg-[#003366] hover:text-white transition"
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/signup"
+                className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold w-40 text-center hover:bg-[#003366] hover:text-white transition"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
+
+          {user && role === "admin" && (
+            <Link
+              href="/admin-area/dashboard"
+              className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold w-40 text-center hover:bg-[#003366] hover:text-white transition"
+            >
+              Admin Dashboard
+            </Link>
+          )}
+
+          {user && role === "parent" && (
+            <Link
+              href="/parent-area/dashboard"
+              className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold w-40 text-center hover:bg-[#003366] hover:text-white transition"
+            >
+              Parent Dashboard
+            </Link>
+          )}
+
+          {user && role === "kid" && (
+            <Link
+              href="/kid-area/dashboard"
+              className="bg-white text-[#003366] border-2 border-[#003366] rounded-full px-4 py-2 font-semibold w-40 text-center hover:bg-[#003366] hover:text-white transition"
+            >
+              My Reading Quest
+            </Link>
+          )}
+{user && (
+  <Link
+    href="/logout"
+    className="bg-red-600 text-white border-2 border-red-800 rounded-full px-4 py-2 font-semibold w-40 text-center hover:bg-red-800 transition"
+  >
+    Logout
+  </Link>
+)}
+
+        </div>
       )}
-    </nav>
+    </header>
   );
 }

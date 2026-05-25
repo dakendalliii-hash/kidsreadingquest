@@ -1,23 +1,23 @@
-html, body {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure full-height background */
+html,
+body {
+  height: 100%;
   margin: 0;
   padding: 0;
-  height: 100%;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #e0f2ff; /* Light blue background */
 }
 
-body {
-background-image: url('/DiverseKids.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  font-family: sans-serif;
+/* Prevent white gaps around main content */
+main {
+  min-height: 100vh;
+  background-color: #e0f2ff;
 }
 
-.page-container {
-  background: rgba(255, 255, 255, 0.85);
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 900px;
-  margin: 3rem auto;
+a {
+  text-decoration: none !important;
 }
-
-

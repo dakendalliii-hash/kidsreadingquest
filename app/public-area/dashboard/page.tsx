@@ -1,12 +1,12 @@
-import { redirectIfUnauthorized } from "@/lib/auth/redirectIfUnauthorized";
+interface DashboardProps {
+  user?: { email?: string };
+}
 
-export default async function PublicDashboard() {
-  const user = await redirectIfUnauthorized();
-
+export default function PublicDashboard({ user }: DashboardProps) {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Public Dashboard</h1>
-      <p>Welcome, {user.email}</p>
+    <div className="p-6">
+      <h1 className="text-white text-3xl font-bold">Public Dashboard</h1>
+      <p>Welcome, {user?.email ?? "Guest"}</p>
     </div>
   );
 }

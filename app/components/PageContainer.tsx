@@ -1,4 +1,9 @@
-"use client"
-export default function PageContainer({ children }: { children: React.ReactNode }) {
-  return <div className="page-container">{children}</div>;
+"use client";
+
+interface PageContainerProps {
+  children?: React.ReactNode;
+}
+
+export default function PageContainer({ children }: PageContainerProps) {
+  return <div className="p-6">{children}</div>;
 }

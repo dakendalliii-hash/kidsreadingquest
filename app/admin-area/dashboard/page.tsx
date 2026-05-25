@@ -1,12 +1,9 @@
-import { requireRole } from "@/lib/auth/requireRole";
-
-export default async function AdminDashboard() {
-  const user = await requireRole("admin");
-
+// app/admin-area/dashboard/page.tsx
+export default async function AdminDashboardPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-      <p>Welcome, {user.email}</p>
-    </div>
+    <main className="p-6 text-slate-900">
+      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <p>Welcome, admin. Your tools and management features go here.</p>
+    </main>
   );
 }

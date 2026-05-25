@@ -1,14 +1,18 @@
 import NavBar from "@/app/components/NavBar";
-import { ReactNode } from "react";
+import { getUser } from "@/lib/supabase/getUser";
+import { getRole } from "@/lib/supabase/getRole";
 
-interface LayoutProps {
-  children: ReactNode;
-}
+export default async function PublicDashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const user = await getUser();
+  const role = await getRole();
 
-export default function PublicDashboardLayout({ children }: LayoutProps) {
   return (
     <div>
-      <NavBar />
+      <NavBar user={user} role={role} />
       <main className="p-6">{children}</main>
     </div>
   );
