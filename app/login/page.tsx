@@ -5,6 +5,8 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
+import AuthCard from "@/components/AuthCard";
+
 
 // =========================================================
 // SECTION 1 — SERVER ACTION: LOGIN (TOP LEVEL)
@@ -35,21 +37,20 @@ export async function handleLogin(formData: FormData) {
 // =========================================================
 export default function LoginPage() {
   return (
-    <div
-      style={{
-        backgroundImage: "url('/DiverseKids.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "40px",
-      }}
-    >
+<div
+  style={{
+    backgroundImage: "url('/DiverseKids.png')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundAttachment: "fixed",
+    minHeight: "100vh",
+    padding: "80px 40px 40px 40px", // UPDATED
+  }}
+>
       <FormContainer>
+	<div className="page-container">
+	<AuthCard>
         {/* ========================================================= */}
         {/* SECTION 3 — FORM CARD (MATCHES PARENT CONTAINER) */}
         {/* ========================================================= */}
@@ -196,6 +197,8 @@ export default function LoginPage() {
             </span>
           </div>
         </div>
+	</AuthCard>
+	</div>
       </FormContainer>
     </div>
   );
