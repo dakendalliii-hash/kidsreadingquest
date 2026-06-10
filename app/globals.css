@@ -21,3 +21,103 @@ main {
 a {
   text-decoration: none !important;
 }
+
+/* Make all page text white by default */
+body {
+  color: white;
+}
+
+/* Standard login-style button */
+.btn-primary {
+  background-color: #3b4a63;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  display: block;
+}
+
+/* Delete button */
+.btn-danger {
+  background-color: red;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  display: block;
+
+  white-space: nowrap;
+  width: fit-content;
+  max-width: 95%;
+  margin: 0 auto;
+}
+
+/* Standard input field */
+.input-field {
+  width: 95%;
+  max-width: 650px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-top: 5px;
+}
+
+/* Standard white card container used across all pages */
+.page-container {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 40px;
+  width: 95%;
+  max-width: 700px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.form-container {
+  width: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ========================================================= */
+/* GLOBAL BUTTON WIDTH RULES                                 */
+/* ========================================================= */
+
+/* 1. NavBar buttons — match Logout button width */
+.navbar-button {
+  min-width: 90px;        /* matches Logout button width */
+  white-space: normal;    /* allow wrapping */
+  word-break: keep-all;   /* do NOT break words */
+}
+
+/* 2. Single button on a form row — FINAL RULE */
+.form-single-button {
+  width: 80%;             /* leaves 10% space on each side */
+  max-width: 80%;         /* ensures consistent width */
+  margin-left: auto;
+  margin-right: auto;
+  white-space: normal;    /* allow wrapping if needed */
+  word-break: keep-all;   /* do NOT break words */
+}
+
+/* 3. Multiple buttons on the same row */
+.form-multi-button {
+  white-space: normal;
+  word-break: keep-all;
+}
+
+/* Override fit-content when .form-single-button is used */
+.btn-primary.form-single-button {
+  width: 80% !important;
+  max-width: 80% !important;
+}
