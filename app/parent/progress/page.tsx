@@ -26,7 +26,7 @@ export async function updateReadingStatusAction(formData: FormData) {
   const kidId = formData.get("kidId") as string;
   const newStatus = formData.get("newStatus") as string;
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { error } = await supabase.rpc("update_kid_reading_status", {
     p_kid_id: kidId,
@@ -45,7 +45,7 @@ export async function updateReadingStatusAction(formData: FormData) {
 // SECTION 4 — Page Component
 // =========================================================
 export default async function ParentProgressReportPage() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   // ------------------------------
   // Auth check

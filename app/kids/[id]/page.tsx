@@ -13,7 +13,7 @@ export async function markPassageCompleteAction(formData: FormData) {
   "use server";
 
   const kidId = formData.get("kidId") as string;
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { error } = await supabase.rpc("advance_kid_to_next_passage", {
     p_kid_id: kidId,
@@ -38,7 +38,7 @@ export default async function KidDetailPage({
   // ✅ unwrap params Promise (Next.js 16 requirement)
   const { id } = await params;
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   // ------------------------------
   // Auth check

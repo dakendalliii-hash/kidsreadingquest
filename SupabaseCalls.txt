@@ -1,0 +1,15 @@
+app\(public)\signup\page.tsx:12:  const supabase = createServerSupabaseClient();
+app\kids\[id]\page.tsx:16:  const supabase = createServerSupabaseClient();
+app\kids\[id]\page.tsx:41:  const supabase = createServerSupabaseClient();
+app\layout.tsx:9:  const supabase = createServerSupabaseClient();
+app\login\page.tsx:17:  const supabase = createServerSupabaseClient();
+app\parent\actions\createKid.ts:16:  const supabase = createServerSupabaseClient();
+app\parent\manage-kids\page.tsx:15:  const supabase = createServerSupabaseClient();
+app\parent\manage-kids\page.tsx:70:  const supabase = createServerSupabaseClient();
+app\parent\manage-kids\page.tsx:94:  const supabase = createServerSupabaseClient();
+app\parent\manage-kids\page.tsx:111:  const supabase = createServerSupabaseClient();
+app\parent\page.tsx:11:  const supabase = createServerSupabaseClient();
+app\parent\progress\page.tsx:29:  const supabase = createServerSupabaseClient();
+app\parent\progress\page.tsx:48:  const supabase = createServerSupabaseClient();
+lib\supabase\server.ts:5:export async function createServerSupabaseClient() {
+proxy.ts:11:  const supabase = createServerSupabaseClient();

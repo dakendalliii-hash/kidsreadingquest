@@ -6,7 +6,7 @@ import NavBar from "@/components/NavBar";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user ?? null;

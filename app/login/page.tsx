@@ -14,7 +14,7 @@ import AuthCard from "@/components/AuthCard";
 export async function handleLogin(formData: FormData) {
   "use server";
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;

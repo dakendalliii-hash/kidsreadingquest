@@ -8,7 +8,7 @@ export async function proxy(req: NextRequest) {
 
   console.log("🔍 Proxy triggered for:", pathname);
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   // Get logged-in user
   const {

@@ -13,7 +13,7 @@ export async function createKid({
   reading_level: string | null;
   age: number | null;
 }) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   // 1. Create the kid
   const { data: kid, error: kidError } = await supabase

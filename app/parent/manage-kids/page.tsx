@@ -12,7 +12,7 @@ import FormContainer from "@/components/FormContainer";
 export async function addKid(formData: FormData) {
   "use server";
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const name = formData.get("name") as string;
   const readingLevel = formData.get("readingLevel") as string;
   const age = formData.get("age") as string;
@@ -67,7 +67,7 @@ export async function addKid(formData: FormData) {
 export async function updateKid(formData: FormData) {
   "use server";
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const kidId = formData.get("kidId") as string;
   const name = formData.get("name") as string;
   const readingLevel = formData.get("readingLevel") as string;
@@ -91,7 +91,7 @@ export async function updateKid(formData: FormData) {
 export async function deleteKid(formData: FormData) {
   "use server";
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const kidId = formData.get("kidId") as string;
 
   const { error } = await supabase.from("kids").delete().eq("id", kidId);
@@ -108,7 +108,7 @@ export async function deleteKid(formData: FormData) {
 // SECTION 3 — Page Component
 // =========================================================
 export default async function ManageKidsPage() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;

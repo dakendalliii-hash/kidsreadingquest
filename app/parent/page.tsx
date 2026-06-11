@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 // SECTION 2 — Page Component
 // =========================================================
 export default async function ParentDashboardPage() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   // ------------------------------
   // Auth check
