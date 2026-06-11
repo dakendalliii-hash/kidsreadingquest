@@ -2,6 +2,8 @@
 // LOGIN PAGE — COLORS ALIGNED WITH PARENT DASHBOARD
 // =========================================================
 
+export const runtime = "nodejs";
+
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";

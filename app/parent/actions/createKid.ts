@@ -1,5 +1,8 @@
 "use server";
 
+export const runtime = "nodejs";
+
+
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function createKid({
