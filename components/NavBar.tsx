@@ -8,7 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import React from "react";
 
-export default function NavBar() {
+export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -63,46 +63,102 @@ export default function NavBar() {
       </div>
 
       {/* ========================================================= */}
-      {/* SECTION 5 — RIGHT SIDE: BACK + LOGOUT */}
+      {/* SECTION 5 — RIGHT SIDE BUTTONS */}
       {/* ========================================================= */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {showBackButton && (
-          <button
-            onClick={handleBack}
-            style={{
-              backgroundColor: "#f5f6fa",
-              color: "#2c3e50",
-              border: "none",
-              borderRadius: "6px",
-              padding: "6px 14px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-              minWidth: "90px", // NEW: unified button width
-            }}
-          >
-            Back
-          </button>
+        
+        {/* ========================================================= */}
+        {/* SHOW LOGIN + SIGNUP ONLY ON /login PAGE */}
+        {/* ========================================================= */}
+        {pathname === "/login" && (
+          <>
+            <Link
+              href="/login"
+              style={{
+                backgroundColor: "#f5f6fa",
+                color: "#2c3e50",
+                border: "none",
+                borderRadius: "6px",
+                padding: "6px 14px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "0.95rem",
+                minWidth: "90px",
+                textAlign: "center",
+                textDecoration: "none",
+              }}
+            >
+              Login
+            </Link>
+
+            <Link
+              href="/signup"
+              style={{
+                backgroundColor: "#f5f6fa",
+                color: "#2c3e50",
+                border: "none",
+                borderRadius: "6px",
+                padding: "6px 14px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "0.95rem",
+                minWidth: "90px",
+                textAlign: "center",
+                textDecoration: "none",
+              }}
+            >
+              Sign Up
+            </Link>
+          </>
         )}
 
-        <form action="/logout" method="post">
-          <button
-            type="submit"
-            style={{
-              backgroundColor: "#f5f6fa",
-              color: "#2c3e50",
-              border: "none",
-              borderRadius: "6px",
-              padding: "6px 14px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-              minWidth: "90px", // NEW: unified button width
-            }}
-          >
-            Logout
-          </button>
-        </form>
+        {/* ========================================================= */}
+        {/* SHOW BACK + LOGOUT ON ALL OTHER PAGES */}
+        {/* ========================================================= */}
+        {pathname !== "/login" && (
+          <>
+            {showBackButton && (
+              <button
+                onClick={handleBack}
+                style={{
+                  backgroundColor: "#f5f6fa",
+                  color: "#2c3e50",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 14px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "0.95rem",
+                  minWidth: "90px",
+                }}
+              >
+                Back
+              </button>
+            )}
+
+{/* ========================================================= */}
+{/* SHOW LOGOUT ONLY WHEN LOGGED IN                           */}
+{/* ========================================================= */}
+{isLoggedIn && pathname !== "/login" && (
+  <form action="/logout" method="post">
+    <button
+      type="submit"
+      style={{
+        backgroundColor: "#f5f6fa",
+        color: "#2c3e50",
+        border: "none",
+        borderRadius: "6px",
+        padding: "6px 14px",
+        cursor: "pointer",
+        fontWeight: "bold",
+        fontSize: "0.95rem",
+        minWidth: "90px",
+      }}
+    >
+      Logout
+    </button>
+  </form>
+)}
       </div>
     </nav>
   );

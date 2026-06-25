@@ -108,11 +108,12 @@ export default function SignUpPage() {
   >
     Password
   </label>
+
   <input
     id="password"
     type="password"
     name="password"
-    placeholder="Enter password"
+    placeholder="Create a strong password"
     required
     style={{
       width: "100%",
@@ -122,6 +123,21 @@ export default function SignUpPage() {
       fontSize: "1rem",
     }}
   />
+
+  {/* ========================================================= */}
+  {/* PASSWORD GUIDANCE — MODERN NIST STANDARD                  */}
+  {/* ========================================================= */}
+  <p
+    style={{
+      color: "black",
+      fontSize: "0.9rem",
+      marginTop: "6px",
+      opacity: 0.85,
+    }}
+  >
+    Password must be at least <strong>10 characters</strong>.  
+    You may use <strong>letters, numbers, spaces, and any standard symbols</strong>.
+  </p>
 </div>
 
 {/* Confirm Password field */}

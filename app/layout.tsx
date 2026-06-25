@@ -36,7 +36,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en">
       <body style={{ margin: 0, padding: 0 }}>
-        <NavBar />
+
+<NavBarWrapper />
 
         <div
           style={{
