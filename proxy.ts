@@ -8,6 +8,23 @@ export async function proxy(req: NextRequest) {
 
   console.log("🔍 Proxy triggered for:", pathname);
 
+  // ---------------------------------------------------------
+  // PUBLIC ROUTES — DO NOT REQUIRE AUTH
+  // ---------------------------------------------------------
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/signup",
+    "/unauthorized",
+    "/post-logout",
+    "/logout",
+  ];
+
+  if (publicRoutes.includes(pathname)) {
+    console.log("🌐 Public route — allowed:", pathname);
+    return NextResponse.next();
+  }
+
   const supabase = await createServerSupabaseClient();
 
   // Get logged-in user

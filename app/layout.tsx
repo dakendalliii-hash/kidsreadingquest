@@ -6,6 +6,7 @@ import "./globals.css";
 import { ReactNode } from "react";
 import NavBar from "@/components/NavBar";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import NavBarWrapper from "@/components/NavBarWrapper";
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerSupabaseClient();

@@ -49,28 +49,28 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
       {/* SECTION 4 — LEFT SIDE: HOME LINK */}
       {/* ========================================================= */}
       <div>
-        <Link
-          href="/parent"
-          style={{
-            color: "white",
-            fontWeight: "bold",
-            fontSize: "1.1rem",
-            textDecoration: "none",
-          }}
-        >
-          Home
-        </Link>
+<Link
+  href="/"
+  style={{
+    color: "white",
+    fontWeight: "bold",
+    fontSize: "1.1rem",
+    textDecoration: "none",
+  }}
+>
+  Home
+</Link>
       </div>
 
       {/* ========================================================= */}
       {/* SECTION 5 — RIGHT SIDE BUTTONS */}
       {/* ========================================================= */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        
+
         {/* ========================================================= */}
-        {/* SHOW LOGIN + SIGNUP ONLY ON /login PAGE */}
+        {/* SHOW LOGIN + SIGNUP ON /login AND / (HOME PAGE)          */}
         {/* ========================================================= */}
-        {pathname === "/login" && (
+        {(pathname === "/login" || pathname === "/") && (
           <>
             <Link
               href="/login"
@@ -113,9 +113,9 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
         )}
 
         {/* ========================================================= */}
-        {/* SHOW BACK + LOGOUT ON ALL OTHER PAGES */}
+        {/* SHOW BACK + LOGOUT ON ALL OTHER PAGES                    */}
         {/* ========================================================= */}
-        {pathname !== "/login" && (
+        {pathname !== "/login" && pathname !== "/" && (
           <>
             {showBackButton && (
               <button
@@ -136,29 +136,31 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
               </button>
             )}
 
-{/* ========================================================= */}
-{/* SHOW LOGOUT ONLY WHEN LOGGED IN                           */}
-{/* ========================================================= */}
-{isLoggedIn && pathname !== "/login" && (
-  <form action="/logout" method="post">
-    <button
-      type="submit"
-      style={{
-        backgroundColor: "#f5f6fa",
-        color: "#2c3e50",
-        border: "none",
-        borderRadius: "6px",
-        padding: "6px 14px",
-        cursor: "pointer",
-        fontWeight: "bold",
-        fontSize: "0.95rem",
-        minWidth: "90px",
-      }}
-    >
-      Logout
-    </button>
-  </form>
-)}
+            {/* ========================================================= */}
+            {/* SHOW LOGOUT ONLY WHEN LOGGED IN                           */}
+            {/* ========================================================= */}
+            {isLoggedIn && (
+              <form action="/logout" method="post">
+                <button
+                  type="submit"
+                  style={{
+                    backgroundColor: "#f5f6fa",
+                    color: "#2c3e50",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "6px 14px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "0.95rem",
+                    minWidth: "90px",
+                  }}
+                >
+                  Logout
+                </button>
+              </form>
+            )}
+          </>
+        )}
       </div>
     </nav>
   );
