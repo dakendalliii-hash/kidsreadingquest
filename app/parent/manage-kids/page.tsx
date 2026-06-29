@@ -8,6 +8,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
+import DeleteConfirm from "@/components/DeleteConfirm";
+
 
 // =========================================================
 // SECTION 2 — Server Actions
@@ -344,7 +346,7 @@ export default async function ManageKidsPage() {
               </form>
 
               {/* Delete Kid Form */}
-              <form action={deleteKid}>
+<form action={deleteKid} data-kid-name={kid.name}>
                 <input type="hidden" name="kidId" value={kid.id} />
 
                 <button
@@ -368,6 +370,7 @@ export default async function ManageKidsPage() {
             </div>
           ))}
         </div>
+<DeleteConfirm />
       </FormContainer>
     </div>
   );
