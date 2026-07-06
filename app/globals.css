@@ -2,17 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ensure full-height background */
+/* GLOBAL RESET */
 html,
 body {
   height: 100%;
   margin: 0;
   padding: 0;
   font-family: 'Segoe UI', sans-serif;
-  background-color: #e0f2ff; /* Light blue background */
+  background-color: #e0f2ff;
 }
 
-/* Prevent white gaps around main content */
 main {
   min-height: 100vh;
   background-color: #e0f2ff;
@@ -22,12 +21,28 @@ a {
   text-decoration: none !important;
 }
 
-/* Make all page text white by default */
-body {
-  color: white;
+/* TEXT */
+.section-header {
+  color: black;
+  font-weight: bold;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-/* Standard login-style button */
+.floating-slate {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 10px 16px;
+  border-radius: 8px;
+  color: black;
+  font-weight: bold;
+  z-index: 999;
+}
+
+/* BUTTONS */
 .btn-primary {
   background-color: #3b4a63;
   color: white;
@@ -39,7 +54,6 @@ body {
   display: block;
 }
 
-/* Delete button */
 .btn-danger {
   background-color: red;
   color: white;
@@ -49,33 +63,53 @@ body {
   font-weight: bold;
   cursor: pointer;
   display: block;
-
   white-space: nowrap;
   width: fit-content;
   max-width: 95%;
   margin: 0 auto;
 }
 
-/* Standard input field */
+/* INPUTS */
 .input-field {
   width: 95%;
   max-width: 650px;
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #ccc;
-  margin-top: 5px;
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 
-/* Standard white card container used across all pages */
+.page-container .input-field {
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page-container .btn-primary {
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 20px;
+}
+
+select.input-field {
+  appearance: none;
+}
+
+/* PAGE CONTAINERS */
 .page-container {
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 12px;
-  padding: 0;              /* UPDATED */
+  padding: 40px;
   width: 95%;
   max-width: 700px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   text-align: center;
-  margin: 60px auto 0 auto; /* NEW: pushes below welcome text */
+  margin: 60px auto 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -89,35 +123,31 @@ body {
   align-items: center;
 }
 
-/* ========================================================= */
-/* GLOBAL BUTTON WIDTH RULES                                 */
-/* ========================================================= */
-
-/* 1. NavBar buttons — match Logout button width */
-.navbar-button {
-  min-width: 90px;        /* matches Logout button width */
-  white-space: normal;    /* allow wrapping */
-  word-break: keep-all;   /* do NOT break words */
+.kid-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-/* 2. Single button on a form row — FINAL RULE */
-.form-single-button {
-  width: 80%;             /* leaves 10% space on each side */
-  max-width: 80%;         /* ensures consistent width */
-  margin-left: auto;
-  margin-right: auto;
-  white-space: normal;    /* allow wrapping if needed */
-  word-break: keep-all;   /* do NOT break words */
+.kid-action-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
-/* 3. Multiple buttons on the same row */
-.form-multi-button {
-  white-space: normal;
-  word-break: keep-all;
+.kid-update-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
-/* Override fit-content when .form-single-button is used */
-.btn-primary.form-single-button {
-  width: 80% !important;
-  max-width: 80% !important;
+.kid-update-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
+
+

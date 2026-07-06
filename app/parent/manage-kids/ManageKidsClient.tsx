@@ -1,6 +1,12 @@
+// =========================================================
+// FILE: ManageKidsClient.tsx
+// PURPOSE: Manage Kids with Name, Level (A/B/C), Age
+// =========================================================
+
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
 import ActionButton from "@/components/ActionButton";
 
@@ -26,183 +32,320 @@ export default function ManageKidsClient({
   deleteKid,
   updateKid,
 }: ManageKidsClientProps) {
-  // Track top form fields so Update can use them
+  const router = useRouter();
+
+  // Local state to reflect updates instantly
+  const [localKids, setLocalKids] = useState<Kid[]>(kids);
+
   const [name, setName] = useState("");
-  const [readingLevel, setReadingLevel] = useState("");
+  const [level, setLevel] = useState("");
   const [age, setAge] = useState("");
 
+  // =========================================================
+  // UPDATE KID (with confirmation)
+  // =========================================================
+  const handleLocalUpdate = async (formData: FormData) => {
+    const kidId = formData.get("kidId") as string;
+    const newName = formData.get("name") as string;
+    const newLevel = formData.get("level") as string;
+    const newAge = formData.get("age") as string;
+
+    const confirmed = window.confirm("Are you sure you want to make changes?");
+    if (!confirmed) return;
+
+    // Update UI instantly
+    setLocalKids((prev) =>
+      prev.map((k) =>
+        k.id === kidId
+          ? {
+              ...k,
+              name: newName,
+              reading_level: newLevel,
+              age: newAge ? Number(newAge) : null,
+            }
+          : k
+      )
+    );
+
+    // Run server action
+    await updateKid(formData);
+
+    // Refresh SSR data
+    router.refresh();
+  };
+
   return (
-    <FormContainer>
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "900px",
-          margin: "0 auto",
-        }}
-      >
-        <h2 style={{ marginBottom: "20px", color: "black" }}>Manage Kids</h2>
+    <div
+      style={{
+        backgroundImage: "url('/DiverseKids.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        minHeight: "100vh",
+        paddingTop: "40px",
+        paddingBottom: "80px",
+      }}
+    >
+      {/* ========================================================= */}
+      {/* ADD KID SECTION */}
+      {/* ========================================================= */}
+      <FormContainer>
+        <div className="page-container">
+          <h2 className="section-header">Add Kid</h2>
 
-        {/* ADD / UPDATE SOURCE FORM */}
-        <form action={addKid} style={{ marginBottom: "30px" }}>
-          <input type="hidden" name="parentId" value={parentId} />
+          <form
+            action={async (formData) => {
+              const newName = formData.get("name") as string;
+              const newLevel = formData.get("level") as string;
+              const newAge = formData.get("age") as string;
 
-          <input
-            type="text"
-            name="name"
-            placeholder="Child's name"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              marginBottom: "12px",
-            }}
-          />
+              // Run server action
+              await addKid(formData);
 
-          <select
-            name="readingLevel"
-            required
-            value={readingLevel}
-            onChange={(e) => setReadingLevel(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              marginBottom: "12px",
-            }}
-          >
-            <option value="">Select reading level</option>
-            <option value="0-3">0 to 3</option>
-            <option value="3-4">3 to 4</option>
-            <option value="5+">5 and above</option>
-          </select>
+              // Update UI instantly
+              setLocalKids((prev) => [
+                ...prev,
+                {
+                  id: crypto.randomUUID(), // temporary placeholder
+                  name: newName,
+                  reading_level: newLevel,
+                  age: newAge ? Number(newAge) : null,
+                },
+              ]);
 
-          <input
-            type="number"
-            name="age"
-            placeholder="Age (optional)"
-            min="0"
-            max="18"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              marginBottom: "12px",
-            }}
-          />
+              // Clear form fields
+              setName("");
+              setLevel("");
+              setAge("");
 
-          <ActionButton label="Add Kid" />
-        </form>
-
-        {/* EXISTING KIDS TABLE */}
-        <h3 style={{ color: "black", marginBottom: "15px" }}>Existing Kids</h3>
-
-        {kids.length === 0 && (
-          <div
-            style={{
-              marginTop: "20px",
-              padding: "16px",
-              borderRadius: "8px",
-              border: "2px dashed #3b4a63",
-              backgroundColor: "rgba(255,255,255,0.9)",
-              color: "#3b4a63",
-              fontWeight: "bold",
-              textAlign: "center",
+              // Refresh SSR data
+              router.refresh();
             }}
           >
-            No kids added yet.
-          </div>
-        )}
+            <input type="hidden" name="parentId" value={parentId} />
 
-        {kids.length > 0 && (
-          <div
-            style={{
-              marginTop: "10px",
-              backgroundColor: "rgba(255,255,255,0.9)",
-              borderRadius: "12px",
-              border: "1px solid #ccc",
-              padding: "16px",
-              overflowX: "auto",
-            }}
-          >
-            <table
+            <input
+              type="text"
+              name="name"
+              placeholder="Kid's name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-field"
+            />
+
+            <select
+              name="level"
+              required
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className="input-field"
+            >
+              <option value="">Select level</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+            </select>
+
+            <select
+              name="age"
+              required
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              className="input-field"
+            >
+              <option value="">Select age</option>
+              {Array.from({ length: 13 }, (_, i) => {
+                const ageValue = i + 4;
+                return (
+                  <option key={ageValue} value={ageValue}>
+                    {ageValue}
+                  </option>
+                );
+              })}
+            </select>
+
+            <ActionButton label="Add Kid" />
+          </form>
+        </div>
+      </FormContainer>
+
+      {/* ========================================================= */}
+      {/* EXISTING KIDS SECTION */}
+      {/* ========================================================= */}
+      <FormContainer>
+        <div className="page-container">
+          <h2 className="section-header">Existing Kids</h2>
+
+          {localKids.length === 0 && (
+            <div
               style={{
-                width: "100%",
-                borderCollapse: "collapse",
+                marginTop: "20px",
+                padding: "16px",
+                borderRadius: "8px",
+                border: "2px dashed #3b4a63",
+                backgroundColor: "rgba(255,255,255,0.9)",
+                color: "#3b4a63",
+                fontWeight: "bold",
+                textAlign: "center",
               }}
             >
-              <thead>
-                <tr>
-                  <th style={headerStyle}>Name</th>
-                  <th style={headerStyle}>Level</th>
-                  <th style={headerStyle}>Age</th>
-                  <th style={headerCenter}>Update</th>
-                  <th style={headerCenter}>Delete</th>
-                </tr>
-              </thead>
+              No kids added yet.
+            </div>
+          )}
 
-              <tbody>
-                {kids.map((kid) => (
-                  <tr key={kid.id}>
-                    <td style={cellStyle}>{kid.name}</td>
-                    <td style={cellStyle}>{kid.reading_level ?? "N/A"}</td>
-                    <td style={cellStyle}>{kid.age ?? "N/A"}</td>
-
-                    {/* UPDATE BUTTON */}
-                    <td style={cellCenter}>
-                      <form action={updateKid}>
-                        <input type="hidden" name="kidId" value={kid.id} />
-                        <input type="hidden" name="name" value={name} />
-                        <input type="hidden" name="readingLevel" value={readingLevel} />
-                        <input type="hidden" name="age" value={age} />
-                        <ActionButton label="Update" />
-                      </form>
-                    </td>
-
-                    {/* DELETE BUTTON */}
-                    <td style={cellCenter}>
-                      <form action={deleteKid}>
-                        <input type="hidden" name="kidId" value={kid.id} />
-                        <ActionButton label="Delete" />
-                      </form>
-                    </td>
+          {localKids.length > 0 && (
+            <div
+              style={{
+                marginTop: "10px",
+                backgroundColor: "rgba(255,255,255,0.9)",
+                borderRadius: "12px",
+                border: "1px solid #ccc",
+                padding: "16px",
+                overflowX: "auto",
+              }}
+            >
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={headerStyle}>Name</th>
+                    <th style={headerStyle}>Level</th>
+                    <th style={headerStyle}>Age</th>
+                    <th style={headerCenter}>Update</th>
+                    <th style={headerCenter}>Delete</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </FormContainer>
+                </thead>
+
+                <tbody>
+                  {localKids.map((kid) => (
+                    <tr key={kid.id}>
+                      <td style={cellStyle}>{kid.name}</td>
+                      <td style={cellStyle}>{kid.reading_level ?? "N/A"}</td>
+                      <td style={cellStyle}>{kid.age ?? "N/A"}</td>
+
+                      {/* ========================================================= */}
+                      {/* UPDATE ROW */}
+                      {/* ========================================================= */}
+                      <td style={cellCenter}>
+                        <form
+                          action={handleLocalUpdate}
+                          className="kid-update-form"
+                        >
+                          <input type="hidden" name="kidId" value={kid.id} />
+
+                          <div className="kid-update-row">
+                            <input
+                              type="text"
+                              name="name"
+                              defaultValue={kid.name}
+                              className="input-field"
+                            />
+
+                            <select
+                              name="level"
+                              defaultValue={kid.reading_level ?? ""}
+                              className="input-field"
+                            >
+                              <option value="">Select level</option>
+                              <option value="A">A</option>
+                              <option value="B">B</option>
+                              <option value="C">C</option>
+                            </select>
+
+                            <select
+                              name="age"
+                              defaultValue={
+                                kid.age !== null && kid.age !== undefined
+                                  ? kid.age
+                                  : ""
+                              }
+                              className="input-field"
+                            >
+                              <option value="">Select age</option>
+                              {Array.from({ length: 13 }, (_, i) => {
+                                const ageValue = i + 4;
+                                return (
+                                  <option key={ageValue} value={ageValue}>
+                                    {ageValue}
+                                  </option>
+                                );
+                              })}
+                            </select>
+
+                            <ActionButton label="Update" />
+                          </div>
+                        </form>
+                      </td>
+
+                      {/* ========================================================= */}
+                      {/* DELETE ROW */}
+                      {/* ========================================================= */}
+                      <td style={cellCenter}>
+                        <form
+                          action={async (formData) => {
+                            const kidId = formData.get("kidId") as string;
+
+                            const confirmed = window.confirm(
+                              `Are you sure you want to delete ${kid.name}? This will remove all progress for this kid.`
+                            );
+
+                            if (!confirmed) return;
+
+                            // Update UI instantly
+                            setLocalKids((prev) =>
+                              prev.filter((k) => k.id !== kidId)
+                            );
+
+                            // Run server action
+                            await deleteKid(formData);
+
+                            // Refresh SSR data
+                            router.refresh();
+                          }}
+                        >
+                          <input type="hidden" name="kidId" value={kid.id} />
+                          <button type="submit" className="btn-danger">
+                            Delete
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </FormContainer>
+
+      <div className="floating-slate">More actions below</div>
+    </div>
   );
 }
 
-const headerStyle = {
-  textAlign: "left" as const,
+// =========================================================
+// TABLE CELL STYLES
+// =========================================================
+
+const headerStyle: React.CSSProperties = {
+  textAlign: "left",
   padding: "8px",
   borderBottom: "1px solid #ccc",
   color: "black",
 };
 
-const headerCenter = {
+const headerCenter: React.CSSProperties = {
   ...headerStyle,
-  textAlign: "center" as const,
+  textAlign: "center",
 };
 
-const cellStyle = {
+const cellStyle: React.CSSProperties = {
   padding: "8px",
   borderBottom: "1px solid #eee",
   color: "black",
 };
 
-const cellCenter = {
+const cellCenter: React.CSSProperties = {
   ...cellStyle,
-  textAlign: "center" as const,
+  textAlign: "center",
 };

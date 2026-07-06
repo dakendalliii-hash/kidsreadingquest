@@ -151,6 +151,7 @@ export default async function ParentDashboardPage() {
             View Reading Progress Report
           </button>
         </form>
+
       </div>
     </div>
   );

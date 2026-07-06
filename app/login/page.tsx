@@ -13,7 +13,7 @@ import AuthCard from "@/components/AuthCard";
 // =========================================================
 // SECTION 1 — SERVER ACTION: LOGIN (TOP LEVEL)
 // =========================================================
-export async function handleLogin(formData: FormData) {
+async function handleLogin(formData: FormData) {
   "use server";
 
   const supabase = await createServerSupabaseClient();

@@ -21,34 +21,16 @@ interface ParentKidProgress {
 }
 
 // =========================================================
-// SECTION 3 — Server Action: Update Reading Status
+// SECTION 3 — Server Action: Update Reading Status   - DELETED ON PURPOSE
 // =========================================================
-export async function updateReadingStatusAction(formData: FormData) {
-  "use server";
-
-  const kidId = formData.get("kidId") as string;
-  const newStatus = formData.get("newStatus") as string;
-
-  const supabase = await createServerSupabaseClient();
-
-  const { error } = await supabase.rpc("update_kid_reading_status", {
-    p_kid_id: kidId,
-    p_status: newStatus,
-  });
-
-  if (error) {
-    console.error("❌ RPC update_kid_reading_status failed:", error);
-    throw new Error("Failed to update reading status.");
-  }
-
-  revalidatePath("/parent/progress");
-}
 
 // =========================================================
 // SECTION 4 — Page Component
 // =========================================================
 export default async function ParentProgressReportPage() {
   const supabase = await createServerSupabaseClient();
+
+const { updateReadingStatusAction } = await import("./actions");
 
   // ------------------------------
   // Auth check
@@ -96,6 +78,7 @@ export default async function ParentProgressReportPage() {
       }
     }
   }
+
 
   return (
     <div

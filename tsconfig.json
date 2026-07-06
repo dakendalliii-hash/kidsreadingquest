@@ -18,6 +18,7 @@
     "jsx": "react-jsx",
     "incremental": true,
     "types": [
+      "./types/canvas-confetti",
       "next",
       "node"
     ],
