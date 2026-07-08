@@ -4,7 +4,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
 import Celebration from "@/components/Celebration";
-import { markPassageCompleteAction } from "./actions";
+import MicReader from "@/components/MicReader";
+import KidDetailClientWrapper from "@/components/KidDetailClientWrapper";
+
 
 export default async function KidDetailPage({
   params,
@@ -104,6 +106,7 @@ export default async function KidDetailPage({
                 margin: "0 auto",
                 textAlign: "center",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                position: "relative",
               }}
             >
               {/* Kid name and passage number */}
@@ -144,28 +147,11 @@ export default async function KidDetailPage({
                 </p>
               </div>
 
-              {/* Complete button */}
-              <form
-                action={markPassageCompleteAction}
-                style={{ marginTop: "25px" }}
-              >
-                <input type="hidden" name="kidId" value={kid.id} />
-                <button
-                  type="submit"
-                  style={{
-                    backgroundColor: "#4CAF50",
-                    color: "white",
-                    padding: "10px 20px",
-                    borderRadius: "8px",
-                    border: "none",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                  }}
-                >
-                  Mark Passage Complete
-                </button>
-              </form>
+{/* Read Aloud (Client Wrapper) */}
+<KidDetailClientWrapper
+  passageText={passageText}
+  kidId={kid.id}
+/>
             </div>
           </FormContainer>
         </div>

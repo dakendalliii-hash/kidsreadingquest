@@ -4,7 +4,7 @@ export const revalidate = 0;
 import { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 
 export default async function ParentLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
@@ -36,5 +36,6 @@ export default async function ParentLayout({ children }: { children: ReactNode }
 
   if (role !== "parent") redirect("/unauthorized");
 
+  // ⭐ Git version: NO background, NO header, NO spacing — just children
   return <div>{children}</div>;
 }

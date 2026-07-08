@@ -18,16 +18,14 @@ async function addKid(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   const name = formData.get("name") as string;
   const level = formData.get("level") as string;
-  const age = formData.get("age") as string;
   const parentId = formData.get("parentId") as string;
 
-  // Insert kid record
+  // Insert kid record (age removed)
   const { data: kidInsert, error: kidError } = await supabase
     .from("kids")
     .insert({
       name,
       reading_level: level,
-      age: age ? Number(age) : null,
       parent_id: parentId,
     })
     .select("id")
@@ -65,14 +63,12 @@ async function updateKid(formData: FormData) {
   const kidId = formData.get("kidId") as string;
   const name = formData.get("name") as string;
   const level = formData.get("level") as string;
-  const age = formData.get("age") as string;
 
-  // Update name + age
+  // Update name only (age removed)
   const { error: kidError } = await supabase
     .from("kids")
     .update({
       name,
-      age: age ? Number(age) : null,
     })
     .eq("id", kidId);
 
@@ -81,12 +77,11 @@ async function updateKid(formData: FormData) {
     throw new Error("Failed to update kid.");
   }
 
-// Update band + progress via RPC
-const { error: rpcError } = await supabase.rpc("update_kid_band", {
-  p_kid_id: kidId,
-  p_band: level,
-});
-
+  // Update band + progress via RPC
+  const { error: rpcError } = await supabase.rpc("update_kid_band", {
+    p_kid_id: kidId,
+    p_band: level,
+  });
 
   if (rpcError) {
     console.error("❌ RPC update_kid_band failed:", rpcError);

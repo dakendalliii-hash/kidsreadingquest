@@ -136,29 +136,53 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
               </button>
             )}
 
-            {/* ========================================================= */}
-            {/* SHOW LOGOUT ONLY WHEN LOGGED IN                           */}
-            {/* ========================================================= */}
-            {isLoggedIn && (
-              <form action="/logout" method="post">
-                <button
-                  type="submit"
-                  style={{
-                    backgroundColor: "#f5f6fa",
-                    color: "#2c3e50",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 14px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    fontSize: "0.95rem",
-                    minWidth: "90px",
-                  }}
-                >
-                  Logout
-                </button>
-              </form>
-            )}
+{/* ========================================================= */}
+{/* TECHNICAL INSTRUCTIONS — ONLY WHEN LOGGED IN              */}
+{/* ========================================================= */}
+{isLoggedIn && (
+  <Link
+    href="/help/microphone"
+    style={{
+      backgroundColor: "#f5f6fa",
+      color: "#2c3e50",
+      border: "none",
+      borderRadius: "6px",
+      padding: "6px 14px",
+      cursor: "pointer",
+      fontWeight: "bold",
+      fontSize: "0.95rem",
+      minWidth: "90px",
+      textAlign: "center",
+      textDecoration: "none",
+    }}
+  >
+    Technical Instructions
+  </Link>
+)}
+
+{/* ========================================================= */}
+{/* LOGOUT BUTTON                                             */}
+{/* ========================================================= */}
+{isLoggedIn && (
+  <form action="/logout" method="post">
+    <button
+      type="submit"
+      style={{
+        backgroundColor: "#f5f6fa",
+        color: "#2c3e50",
+        border: "none",
+        borderRadius: "6px",
+        padding: "6px 14px",
+        cursor: "pointer",
+        fontWeight: "bold",
+        fontSize: "0.95rem",
+        minWidth: "90px",
+      }}
+    >
+      Logout
+    </button>
+  </form>
+)}
           </>
         )}
       </div>

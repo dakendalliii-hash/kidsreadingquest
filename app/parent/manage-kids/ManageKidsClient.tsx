@@ -1,6 +1,6 @@
 // =========================================================
 // FILE: ManageKidsClient.tsx
-// PURPOSE: Manage Kids with Name, Level (A/B/C), Age
+// PURPOSE: Manage Kids with Name + Level (Age removed)
 // =========================================================
 
 "use client";
@@ -14,7 +14,6 @@ type Kid = {
   id: string;
   name: string;
   reading_level: string | null;
-  age: number | null;
 };
 
 type ManageKidsClientProps = {
@@ -34,12 +33,10 @@ export default function ManageKidsClient({
 }: ManageKidsClientProps) {
   const router = useRouter();
 
-  // Local state to reflect updates instantly
   const [localKids, setLocalKids] = useState<Kid[]>(kids);
 
   const [name, setName] = useState("");
   const [level, setLevel] = useState("");
-  const [age, setAge] = useState("");
 
   // =========================================================
   // UPDATE KID (with confirmation)
@@ -48,7 +45,6 @@ export default function ManageKidsClient({
     const kidId = formData.get("kidId") as string;
     const newName = formData.get("name") as string;
     const newLevel = formData.get("level") as string;
-    const newAge = formData.get("age") as string;
 
     const confirmed = window.confirm("Are you sure you want to make changes?");
     if (!confirmed) return;
@@ -61,16 +57,12 @@ export default function ManageKidsClient({
               ...k,
               name: newName,
               reading_level: newLevel,
-              age: newAge ? Number(newAge) : null,
             }
           : k
       )
     );
 
-    // Run server action
     await updateKid(formData);
-
-    // Refresh SSR data
     router.refresh();
   };
 
@@ -86,9 +78,7 @@ export default function ManageKidsClient({
         paddingBottom: "80px",
       }}
     >
-      {/* ========================================================= */}
       {/* ADD KID SECTION */}
-      {/* ========================================================= */}
       <FormContainer>
         <div className="page-container">
           <h2 className="section-header">Add Kid</h2>
@@ -97,28 +87,21 @@ export default function ManageKidsClient({
             action={async (formData) => {
               const newName = formData.get("name") as string;
               const newLevel = formData.get("level") as string;
-              const newAge = formData.get("age") as string;
 
-              // Run server action
               await addKid(formData);
 
-              // Update UI instantly
               setLocalKids((prev) => [
                 ...prev,
                 {
-                  id: crypto.randomUUID(), // temporary placeholder
+                  id: crypto.randomUUID(),
                   name: newName,
                   reading_level: newLevel,
-                  age: newAge ? Number(newAge) : null,
                 },
               ]);
 
-              // Clear form fields
               setName("");
               setLevel("");
-              setAge("");
 
-              // Refresh SSR data
               router.refresh();
             }}
           >
@@ -142,27 +125,9 @@ export default function ManageKidsClient({
               className="input-field"
             >
               <option value="">Select level</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-            </select>
-
-            <select
-              name="age"
-              required
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className="input-field"
-            >
-              <option value="">Select age</option>
-              {Array.from({ length: 13 }, (_, i) => {
-                const ageValue = i + 4;
-                return (
-                  <option key={ageValue} value={ageValue}>
-                    {ageValue}
-                  </option>
-                );
-              })}
+              <option value="A">A 4-5</option>
+              <option value="B">B 6-7</option>
+              <option value="C">C 8-9</option>
             </select>
 
             <ActionButton label="Add Kid" />
@@ -170,9 +135,7 @@ export default function ManageKidsClient({
         </div>
       </FormContainer>
 
-      {/* ========================================================= */}
       {/* EXISTING KIDS SECTION */}
-      {/* ========================================================= */}
       <FormContainer>
         <div className="page-container">
           <h2 className="section-header">Existing Kids</h2>
@@ -210,7 +173,6 @@ export default function ManageKidsClient({
                   <tr>
                     <th style={headerStyle}>Name</th>
                     <th style={headerStyle}>Level</th>
-                    <th style={headerStyle}>Age</th>
                     <th style={headerCenter}>Update</th>
                     <th style={headerCenter}>Delete</th>
                   </tr>
@@ -221,16 +183,9 @@ export default function ManageKidsClient({
                     <tr key={kid.id}>
                       <td style={cellStyle}>{kid.name}</td>
                       <td style={cellStyle}>{kid.reading_level ?? "N/A"}</td>
-                      <td style={cellStyle}>{kid.age ?? "N/A"}</td>
 
-                      {/* ========================================================= */}
-                      {/* UPDATE ROW */}
-                      {/* ========================================================= */}
                       <td style={cellCenter}>
-                        <form
-                          action={handleLocalUpdate}
-                          className="kid-update-form"
-                        >
+                        <form action={handleLocalUpdate} className="kid-update-form">
                           <input type="hidden" name="kidId" value={kid.id} />
 
                           <div className="kid-update-row">
@@ -247,29 +202,9 @@ export default function ManageKidsClient({
                               className="input-field"
                             >
                               <option value="">Select level</option>
-                              <option value="A">A</option>
-                              <option value="B">B</option>
-                              <option value="C">C</option>
-                            </select>
-
-                            <select
-                              name="age"
-                              defaultValue={
-                                kid.age !== null && kid.age !== undefined
-                                  ? kid.age
-                                  : ""
-                              }
-                              className="input-field"
-                            >
-                              <option value="">Select age</option>
-                              {Array.from({ length: 13 }, (_, i) => {
-                                const ageValue = i + 4;
-                                return (
-                                  <option key={ageValue} value={ageValue}>
-                                    {ageValue}
-                                  </option>
-                                );
-                              })}
+                              <option value="A">A 4-5</option>
+                              <option value="B">B 6-7</option>
+                              <option value="C">C 8-9</option>
                             </select>
 
                             <ActionButton label="Update" />
@@ -277,9 +212,6 @@ export default function ManageKidsClient({
                         </form>
                       </td>
 
-                      {/* ========================================================= */}
-                      {/* DELETE ROW */}
-                      {/* ========================================================= */}
                       <td style={cellCenter}>
                         <form
                           action={async (formData) => {
@@ -291,15 +223,11 @@ export default function ManageKidsClient({
 
                             if (!confirmed) return;
 
-                            // Update UI instantly
                             setLocalKids((prev) =>
                               prev.filter((k) => k.id !== kidId)
                             );
 
-                            // Run server action
                             await deleteKid(formData);
-
-                            // Refresh SSR data
                             router.refresh();
                           }}
                         >
@@ -322,10 +250,6 @@ export default function ManageKidsClient({
     </div>
   );
 }
-
-// =========================================================
-// TABLE CELL STYLES
-// =========================================================
 
 const headerStyle: React.CSSProperties = {
   textAlign: "left",

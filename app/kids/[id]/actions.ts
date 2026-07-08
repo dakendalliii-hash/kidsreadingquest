@@ -3,11 +3,24 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-export async function markPassageCompleteAction(formData: FormData) {
-  const kidId = formData.get("kidId") as string;
+/**
+ * This file intentionally contains ONLY the legacy SSR actions
+ * that your app still uses elsewhere.
+ *
+ * The new read-aloud flow lives in:
+ *   /app/kids/[id]/readAloudAction.ts
+ *
+ * We keep this file clean and minimal.
+ */
+
+/* ---------------------------------------------------------
+   LEGACY: markPassageCompleteAction
+   (Still used by older parts of the app, not by MicReader)
+--------------------------------------------------------- */
+export async function markPassageCompleteAction(kidId: string) {
   const supabase = await createServerSupabaseClient();
 
-  // 1. Get current progress
+  // Load progress
   const { data: progress, error: progressError } = await supabase
     .from("progress")
     .select("band, site_id, passage_index, streak")
@@ -15,16 +28,14 @@ export async function markPassageCompleteAction(formData: FormData) {
     .single();
 
   if (progressError || !progress) {
-    console.error("Progress lookup failed:", progressError);
-    redirect(`/kids/${kidId}`);
-    return;
+    throw new Error("Could not load progress.");
   }
 
   const currentBand = progress.band;
   const currentSite = progress.site_id;
   const currentIndex = progress.passage_index;
 
-  // 2. Try to find the next passage in the same site
+  // Try next passage in same site
   const { data: nextPassageSameSite } = await supabase
     .from("passages")
     .select("id")
@@ -46,10 +57,9 @@ export async function markPassageCompleteAction(formData: FormData) {
       .eq("kid_id", kidId);
 
     redirect(`/kids/${kidId}?celebrate=1`);
-    return;
   }
 
-  // 3. No more passages in this site → try next site
+  // Try next site
   const { data: nextSiteFirstPassage } = await supabase
     .from("passages")
     .select("id")
@@ -72,16 +82,15 @@ export async function markPassageCompleteAction(formData: FormData) {
       .eq("kid_id", kidId);
 
     redirect(`/kids/${kidId}?celebrate=1`);
-    return;
   }
 
-  // 4. No more sites → graduate to next band
+  // Graduate to next band
   const nextBand =
     currentBand === "A"
       ? "B"
       : currentBand === "B"
       ? "C"
-      : "C"; // stays at C if already at C
+      : "C"; // stays at C
 
   const { data: nextBandFirstPassage } = await supabase
     .from("passages")
@@ -106,10 +115,8 @@ export async function markPassageCompleteAction(formData: FormData) {
       .eq("kid_id", kidId);
 
     redirect(`/kids/${kidId}?celebrate=1`);
-    return;
   }
 
-  // 5. No more passages anywhere → stay where you are
-  console.warn("No more passages available for this kid.");
+  // No more passages anywhere
   redirect(`/kids/${kidId}?celebrate=1`);
 }
