@@ -1,27 +1,28 @@
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
 import Celebration from "@/components/Celebration";
-import MicReader from "@/components/MicReader";
 import KidDetailClientWrapper from "@/components/KidDetailClientWrapper";
-
 
 export default async function KidDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ lang?: string; celebrate?: string; bandCompleted?: string }>;
 }) {
   const { id } = await params;
+  const { lang: qLang, celebrate, bandCompleted } = await searchParams;
+
   const supabase = await createServerSupabaseClient();
 
-  // Auth check
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
   if (!user) redirect("/login");
 
-  // Parent record
   const { data: parentRecord } = await supabase
     .from("parents")
     .select("id")
@@ -30,7 +31,6 @@ export default async function KidDetailPage({
 
   if (!parentRecord) redirect("/not-authorized");
 
-  // Ownership check
   const { data: ownershipCheck } = await supabase
     .from("kids")
     .select("parent_id, name")
@@ -43,10 +43,9 @@ export default async function KidDetailPage({
 
   const kid = { id, name: ownershipCheck.name };
 
-  // Progress record
   const { data: progressRecord } = await supabase
     .from("progress")
-    .select("passage_index, band, site_id, status")
+    .select("band, site_id, passage_index")
     .eq("kid_id", id)
     .single();
 
@@ -54,24 +53,34 @@ export default async function KidDetailPage({
     return <p>No progress record found.</p>;
   }
 
-  // Fetch passage text
-  const { data: passageText, error: passageError } = await supabase.rpc(
-    "get_passage_text_for_progress",
-    {
-      p_band: progressRecord.band,
-      p_site_id: progressRecord.site_id,
-      p_passage_index: progressRecord.passage_index,
-    }
-  );
+  const currentBand = progressRecord.band;
+  const currentSite = progressRecord.site_id;
+  const currentIndex = progressRecord.passage_index;
 
-  console.log("RPC passageText:", passageText);
-  console.log("RPC error:", passageError);
+  const langCode = qLang === "hindi" ? "hindi" : "en";
+  const languageName = langCode === "hindi" ? "Hindi" : "English";
 
-  // Render page
+  const { data: passageRow } = await supabase
+    .from("passages")
+    .select("text")
+    .eq("band", currentBand)
+    .eq("site_id", currentSite)
+    .eq("passage_index", currentIndex)
+    .eq("language", langCode)
+    .single();
+
+  const passageText =
+    passageRow?.text ??
+    `No passage found for band ${currentBand}, site ${currentSite}, passage ${currentIndex} (${languageName}).`;
+
   return (
     <>
-      {/* 🎉 Celebration animation */}
-      <Celebration />
+      {celebrate === "1" && (
+        <Celebration
+          kidId={kid.id}
+          language={langCode}
+        />
+      )}
 
       <div
         style={{
@@ -109,7 +118,6 @@ export default async function KidDetailPage({
                 position: "relative",
               }}
             >
-              {/* Kid name and passage number */}
               <h1
                 style={{
                   color: "black",
@@ -120,6 +128,7 @@ export default async function KidDetailPage({
               >
                 {kid.name}
               </h1>
+
               <p
                 style={{
                   color: "black",
@@ -127,10 +136,15 @@ export default async function KidDetailPage({
                   marginBottom: "25px",
                 }}
               >
-                Passage {progressRecord.passage_index}
+                Band {currentBand} — Site {currentSite} — Passage {currentIndex}
               </p>
 
-              {/* Passage text */}
+              <KidDetailClientWrapper
+                passageText={passageText}
+                kidId={kid.id}
+                initialLanguage={languageName}
+              />
+
               <div
                 style={{
                   backgroundColor: "rgba(255,255,255,0.95)",
@@ -139,19 +153,13 @@ export default async function KidDetailPage({
                   textAlign: "left",
                   color: "black",
                   boxShadow: "0 0 10px rgba(0,0,0,0.2)",
+                  marginTop: "20px",
                 }}
               >
                 <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
-                  {passageText ??
-                    `No passage found for passage ${progressRecord.passage_index}.`}
+                  {passageText}
                 </p>
               </div>
-
-{/* Read Aloud (Client Wrapper) */}
-<KidDetailClientWrapper
-  passageText={passageText}
-  kidId={kid.id}
-/>
             </div>
           </FormContainer>
         </div>

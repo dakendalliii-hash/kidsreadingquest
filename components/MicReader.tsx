@@ -5,10 +5,12 @@ import { useState, useEffect, useRef } from "react";
 export default function MicReader({
   passageText,
   kidId,
+  language,
   onSuccessRedirect,
 }: {
   passageText: string;
   kidId: string;
+  language: string;
   onSuccessRedirect: (url: string) => void;
 }) {
   const [isListening, setIsListening] = useState(false);
@@ -16,40 +18,57 @@ export default function MicReader({
   const [errorMessage, setErrorMessage] = useState("");
   const recognitionRef = useRef<any>(null);
 
-  // Initialize Web Speech API
+  const ui = {
+    start: language === "hindi" ? "पढ़ना शुरू करें" : "Read Aloud",
+    listening: language === "hindi" ? "सुन रहा हूँ…" : "Listening…",
+    stop: language === "hindi" ? "पढ़ना रोकें" : "Stop Reading",
+    retry: language === "hindi" ? "फिर से कोशिश करें" : "Retry Microphone",
+    privacy:
+      language === "hindi"
+        ? "गोपनीयता के लिए ऑडियो हटाया गया।"
+        : "Audio deleted for privacy.",
+    micDenied:
+      language === "hindi"
+        ? "माइक्रोफ़ोन अनुमति अस्वीकृत।"
+        : "Microphone access denied.",
+    notSupported:
+      language === "hindi"
+        ? "यह ब्राउज़र वॉइस रिकग्निशन का समर्थन नहीं करता।"
+        : "Speech recognition is not supported.",
+    serverError:
+      language === "hindi"
+        ? "सर्वर त्रुटि।"
+        : "Server error.",
+    lowAccuracy:
+      language === "hindi"
+        ? "सटीकता कम है।"
+        : "Reading accuracy too low.",
+  };
+
   useEffect(() => {
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setErrorMessage(
-        "Speech recognition is not supported in this browser. Please use Chrome or Edge."
-      );
+      setErrorMessage(ui.notSupported);
       return;
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true; // ✅ Keeps listening through pauses
+    recognition.continuous = true;
     recognition.interimResults = false;
-    recognition.lang = "en-US";
+    recognition.lang = language === "hindi" ? "hi-IN" : "en-US";
 
     recognition.onresult = async (event: any) => {
       const transcript = event.results[0][0].transcript;
       await handleTranscript(transcript);
     };
 
-    // ✅ Restart automatically after short pauses
     recognition.onend = () => {
-      setTimeout(() => {
-        if (isListening && recognitionRef.current) {
-          try {
-            recognitionRef.current.start();
-          } catch (_) {
-            // Ignore restart errors
-          }
-        }
-      }, 2000); // 2-second pause tolerance
+      if (isListening && recognitionRef.current) {
+        recognitionRef.current.start();
+      }
     };
 
     recognition.onerror = (event: any) => {
@@ -58,9 +77,8 @@ export default function MicReader({
     };
 
     recognitionRef.current = recognition;
-  }, [isListening]);
+  }, [isListening, language]);
 
-  // Handle transcript
   async function handleTranscript(transcript: string) {
     deleteAudio();
 
@@ -74,6 +92,7 @@ export default function MicReader({
           transcript,
           passageText,
           kidId,
+          language,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -82,19 +101,22 @@ export default function MicReader({
 
       const data = await res.json();
 
-      if (data.success && data.redirectTo) {
-        onSuccessRedirect(data.redirectTo);
+      if (data.success && data.celebrate) {
+        const url = `/kids/${kidId}?celebrate=1&bandCompleted=${
+          data.bandCompleted ? "1" : "0"
+        }&lang=${language}&t=${Date.now()}`;
+
+        onSuccessRedirect(url);
       } else {
-        setErrorMessage(data.message || "Reading accuracy too low. Try again.");
+        setErrorMessage(data.message || ui.lowAccuracy);
       }
     } catch (err) {
-      setErrorMessage("Server error. Please try again.");
+      setErrorMessage(ui.serverError);
     }
 
     setIsListening(false);
   }
 
-  // Delete audio (Web Speech API stores none, but we stop streams)
   function deleteAudio() {
     try {
       if (recognitionRef.current) {
@@ -103,26 +125,19 @@ export default function MicReader({
     } catch (_) {}
   }
 
-  // Start listening with proper permission handling
   async function startListening() {
     setErrorMessage("");
 
     try {
-      // Request microphone permission FIRST
       await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // If permission granted, start recognition
       setIsListening(true);
       recognitionRef.current.start();
     } catch (err) {
-      setErrorMessage(
-        "Microphone access denied. Please enable microphone permissions in Windows and your browser."
-      );
+      setErrorMessage(ui.micDenied);
       setIsListening(false);
     }
   }
 
-  // ✅ Stop Reading manually
   function stopListening() {
     deleteAudio();
     setIsListening(false);
@@ -131,7 +146,6 @@ export default function MicReader({
 
   return (
     <>
-      {/* Privacy Banner */}
       {showPrivacyBanner && (
         <div
           style={{
@@ -147,16 +161,13 @@ export default function MicReader({
             zIndex: 9999,
           }}
         >
-          Audio deleted for privacy.
+          {ui.privacy}
         </div>
       )}
 
-      {/* Error Message */}
       {errorMessage && (
         <div style={{ marginTop: "10px", color: "red", textAlign: "center" }}>
           {errorMessage}
-
-          {/* Retry Button */}
           <div style={{ marginTop: "10px" }}>
             <button
               onClick={startListening}
@@ -172,13 +183,12 @@ export default function MicReader({
                 minWidth: "90px",
               }}
             >
-              Retry Microphone
+              {ui.retry}
             </button>
           </div>
         </div>
       )}
 
-      {/* Read Aloud Button */}
       {!isListening && (
         <button
           onClick={startListening}
@@ -196,11 +206,10 @@ export default function MicReader({
             whiteSpace: "nowrap",
           }}
         >
-          Read Aloud
+          {ui.start}
         </button>
       )}
 
-      {/* Listening Modal — bounded to reading card */}
       {isListening && (
         <div
           style={{
@@ -221,10 +230,9 @@ export default function MicReader({
             🎤
           </div>
           <p style={{ marginTop: "8px", fontWeight: "bold", color: "#333" }}>
-            Listening…
+            {ui.listening}
           </p>
 
-          {/* ✅ Stop Reading Button */}
           <button
             onClick={stopListening}
             style={{
@@ -240,7 +248,7 @@ export default function MicReader({
               minWidth: "120px",
             }}
           >
-            Stop Reading
+            {ui.stop}
           </button>
 
           <style>

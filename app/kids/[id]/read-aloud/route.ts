@@ -1,195 +1,115 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-// ---------------------------
-// Route segment config (Next.js 16)
-// ---------------------------
-export const maxBodySize = "1mb";       // replaces deprecated bodyParser.sizeLimit
-export const runtime = "nodejs";        // required for Supabase server client
-export const dynamic = "force-dynamic"; // ensures POST handler is never statically optimized
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-// ---------------------------
-// Utility: similarity scoring
-// ---------------------------
 function computeSimilarity(transcript: string, passage: string): number {
   const cleanTranscript = transcript.toLowerCase().replace(/[^a-z0-9\s]/g, "");
   const cleanPassage = passage.toLowerCase().replace(/[^a-z0-9\s]/g, "");
 
-  const transcriptWords = cleanTranscript.split(/\s+/).filter(Boolean);
-  const passageWords = cleanPassage.split(/\s+/).filter(Boolean);
+  const tWords = cleanTranscript.split(/\s+/).filter(Boolean);
+  const pWords = cleanPassage.split(/\s+/).filter(Boolean);
 
-  if (transcriptWords.length === 0) return 0;
+  if (tWords.length === 0) return 0;
 
   let matches = 0;
-  const passageSet = new Set(passageWords);
+  const pSet = new Set(pWords);
 
-  for (const w of transcriptWords) {
-    if (passageSet.has(w)) matches++;
+  for (const w of tWords) {
+    if (pSet.has(w)) matches++;
   }
 
-  return matches / Math.max(transcriptWords.length, passageWords.length);
+  return matches / Math.max(tWords.length, pWords.length);
 }
 
-// ---------------------------
-// POST handler
-// ---------------------------
 export async function POST(req: Request) {
   try {
-    console.log("Incoming request size:", req.headers.get("content-length"));
-
-    // SAFER JSON PARSE
     const raw = await req.text();
-    let parsed;
-
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return NextResponse.json(
-        { success: false, message: "Invalid JSON format." },
-        { status: 400 }
-      );
-    }
-
-    const { transcript, passageText, kidId } = parsed;
+    const { transcript, passageText, kidId, language } = JSON.parse(raw);
 
     if (!transcript || !passageText || !kidId) {
+      console.error("Missing transcript or passage:", { transcript, passageText, kidId });
       return NextResponse.json({
         success: false,
         message: "Missing transcript or passage.",
       });
     }
 
-    // Compute similarity
     const similarity = computeSimilarity(transcript, passageText);
-    const threshold = 0.5;
+    console.log("Similarity:", similarity);
 
-    if (similarity < threshold) {
+    if (similarity < 0.2) {
+      console.log("Similarity too low, rejecting.");
       return NextResponse.json({
         success: false,
         message: "Reading accuracy too low. Try again.",
       });
     }
 
-    // ---------------------------
-    // Auto‑advance logic
-    // ---------------------------
     const supabase = await createServerSupabaseClient();
 
-    const { data: progress, error: progressError } = await supabase
-      .from("progress")
-      .select("band, site_id, passage_index, streak")
-      .eq("kid_id", kidId)
-      .single();
+    //------------------------------------------------------------------
+    // CALL RPC: advance_kid_progress
+    //------------------------------------------------------------------
+    console.log("Calling RPC advance_kid_progress for kid:", kidId);
 
-    if (progressError || !progress) {
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "advance_kid_progress",
+      { p_kid_id: kidId }
+    );
+
+    console.log("RPC result:", rpcData);
+    console.log("RPC error:", rpcError);
+
+    if (rpcError) {
+      console.error("RPC error:", rpcError);
       return NextResponse.json({
         success: false,
-        message: "Could not load progress.",
+        message: "Server error advancing progress.",
       });
     }
 
-    const currentBand = progress.band;
-    const currentSite = progress.site_id;
-    const currentIndex = progress.passage_index;
+    if (!rpcData || rpcData.length === 0) {
+      console.error("RPC returned no data. Progress not updated.");
+      return NextResponse.json({
+        success: false,
+        message: "Could not advance progress.",
+      });
+    }
 
-    // Try next passage in same site
-    const { data: nextPassageSameSite } = await supabase
-      .from("passages")
-      .select("id")
-      .eq("language", "en")
-      .eq("band", currentBand)
-      .eq("site_id", currentSite)
-      .eq("passage_index", currentIndex + 1)
-      .maybeSingle();
+    const result = rpcData[0];
 
-    if (nextPassageSameSite) {
-      await supabase
-        .from("progress")
-        .update({
-          passage_index: currentIndex + 1,
-          status: "not started",
-          streak: progress.streak + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("kid_id", kidId);
-
+    //------------------------------------------------------------------
+    // Band completed
+    //------------------------------------------------------------------
+    if (result.band_completed) {
+      console.log("Band completed for kid:", kidId);
       return NextResponse.json({
         success: true,
-        redirectTo: `/kids/${kidId}?celebrate=1`,
+        celebrate: true,
+        bandCompleted: true,
+        message: `Band ${result.new_band} completed!`,
       });
     }
 
-    // Try next site
-    const { data: nextSiteFirstPassage } = await supabase
-      .from("passages")
-      .select("id")
-      .eq("language", "en")
-      .eq("band", currentBand)
-      .eq("site_id", currentSite + 1)
-      .eq("passage_index", 1)
-      .maybeSingle();
+    //------------------------------------------------------------------
+    // Normal progression
+    //------------------------------------------------------------------
+    console.log("Progress advanced:", result);
 
-    if (nextSiteFirstPassage) {
-      await supabase
-        .from("progress")
-        .update({
-          site_id: currentSite + 1,
-          passage_index: 1,
-          status: "not started",
-          streak: progress.streak + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("kid_id", kidId);
-
-      return NextResponse.json({
-        success: true,
-        redirectTo: `/kids/${kidId}?celebrate=1`,
-      });
-    }
-
-    // Graduate to next band
-    const nextBand =
-      currentBand === "A"
-        ? "B"
-        : currentBand === "B"
-        ? "C"
-        : "C"; // stays at C
-
-    const { data: nextBandFirstPassage } = await supabase
-      .from("passages")
-      .select("id")
-      .eq("language", "en")
-      .eq("band", nextBand)
-      .eq("site_id", 1)
-      .eq("passage_index", 1)
-      .maybeSingle();
-
-    if (nextBandFirstPassage) {
-      await supabase
-        .from("progress")
-        .update({
-          band: nextBand,
-          site_id: 1,
-          passage_index: 1,
-          status: "not started",
-          streak: progress.streak + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("kid_id", kidId);
-
-      return NextResponse.json({
-        success: true,
-        redirectTo: `/kids/${kidId}?celebrate=1`,
-      });
-    }
-
-    // No more passages anywhere
     return NextResponse.json({
       success: true,
-      redirectTo: `/kids/${kidId}?celebrate=1`,
+      celebrate: true,
+      bandCompleted: false,
+      newBand: result.new_band,
+      newSite: result.new_site_id,
+      newIndex: result.new_passage_index,
+      newPassageId: result.new_passage_id,
+      message: "Passage complete!",
     });
   } catch (err) {
-    console.error("read‑aloud route error:", err);
+    console.error("read-aloud route error:", err);
     return NextResponse.json({
       success: false,
       message: "Unexpected server error.",

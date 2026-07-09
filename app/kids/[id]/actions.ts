@@ -4,23 +4,19 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 /**
- * This file intentionally contains ONLY the legacy SSR actions
- * that your app still uses elsewhere.
+ * Fully language-aware progression engine.
+ * Called after successful reading.
  *
- * The new read-aloud flow lives in:
- *   /app/kids/[id]/readAloudAction.ts
- *
- * We keep this file clean and minimal.
+ * MicReader → readAloudAction → markPassageCompleteAction
  */
 
-/* ---------------------------------------------------------
-   LEGACY: markPassageCompleteAction
-   (Still used by older parts of the app, not by MicReader)
---------------------------------------------------------- */
-export async function markPassageCompleteAction(kidId: string) {
+export async function markPassageCompleteAction(
+  kidId: string,
+  language: "en" | "hindi" = "en"
+) {
   const supabase = await createServerSupabaseClient();
 
-  // Load progress
+  // Load current progress
   const { data: progress, error: progressError } = await supabase
     .from("progress")
     .select("band, site_id, passage_index, streak")
@@ -35,11 +31,13 @@ export async function markPassageCompleteAction(kidId: string) {
   const currentSite = progress.site_id;
   const currentIndex = progress.passage_index;
 
-  // Try next passage in same site
+  /* ---------------------------------------------------------
+     1. Try next passage in the same site (language-aware)
+  --------------------------------------------------------- */
   const { data: nextPassageSameSite } = await supabase
     .from("passages")
     .select("id")
-    .eq("language", "en")
+    .eq("language", language)
     .eq("band", currentBand)
     .eq("site_id", currentSite)
     .eq("passage_index", currentIndex + 1)
@@ -56,14 +54,16 @@ export async function markPassageCompleteAction(kidId: string) {
       })
       .eq("kid_id", kidId);
 
-    redirect(`/kids/${kidId}?celebrate=1`);
+    redirect(`/kids/${kidId}?celebrate=1&lang=${language}`);
   }
 
-  // Try next site
+  /* ---------------------------------------------------------
+     2. Try first passage of the next site (language-aware)
+  --------------------------------------------------------- */
   const { data: nextSiteFirstPassage } = await supabase
     .from("passages")
     .select("id")
-    .eq("language", "en")
+    .eq("language", language)
     .eq("band", currentBand)
     .eq("site_id", currentSite + 1)
     .eq("passage_index", 1)
@@ -81,10 +81,12 @@ export async function markPassageCompleteAction(kidId: string) {
       })
       .eq("kid_id", kidId);
 
-    redirect(`/kids/${kidId}?celebrate=1`);
+    redirect(`/kids/${kidId}?celebrate=1&lang=${language}`);
   }
 
-  // Graduate to next band
+  /* ---------------------------------------------------------
+     3. Graduate to next band (language-aware)
+  --------------------------------------------------------- */
   const nextBand =
     currentBand === "A"
       ? "B"
@@ -95,7 +97,7 @@ export async function markPassageCompleteAction(kidId: string) {
   const { data: nextBandFirstPassage } = await supabase
     .from("passages")
     .select("id")
-    .eq("language", "en")
+    .eq("language", language)
     .eq("band", nextBand)
     .eq("site_id", 1)
     .eq("passage_index", 1)
@@ -114,9 +116,11 @@ export async function markPassageCompleteAction(kidId: string) {
       })
       .eq("kid_id", kidId);
 
-    redirect(`/kids/${kidId}?celebrate=1`);
+    redirect(`/kids/${kidId}?celebrate=1&lang=${language}`);
   }
 
-  // No more passages anywhere
-  redirect(`/kids/${kidId}?celebrate=1`);
+  /* ---------------------------------------------------------
+     4. No more passages anywhere — celebrate
+  --------------------------------------------------------- */
+  redirect(`/kids/${kidId}?celebrate=1&lang=${language}`);
 }
