@@ -6,7 +6,6 @@ export const runtime = "nodejs";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import FormContainer from "@/components/FormContainer";
 
 // =========================================================
@@ -16,21 +15,18 @@ interface ParentKidProgress {
   kid_id: string;
   kid_name: string;
   band: string;
+  band_id: number;
+  site_id: number;
   passage_index: number;
   status: string;
+  updated_at: string;
 }
 
 // =========================================================
-// SECTION 3 — Server Action: Update Reading Status   - DELETED ON PURPOSE
-// =========================================================
-
-// =========================================================
-// SECTION 4 — Page Component
+// SECTION 3 — Page Component
 // =========================================================
 export default async function ParentProgressReportPage() {
   const supabase = await createServerSupabaseClient();
-
-const { updateReadingStatusAction } = await import("./actions");
 
   // ------------------------------
   // Auth check
@@ -63,23 +59,62 @@ const { updateReadingStatusAction } = await import("./actions");
   }
 
   // ------------------------------
-  // Fetch total passages per band
+  // Total passages per band (across all sites)
   // ------------------------------
-  const totals: Record<string, number> = {};
+  const bandTotals: Record<string, number> = {};
 
   if (progressData) {
     for (const kid of progressData) {
-      if (!totals[kid.band]) {
-        const { data: totalRows } = await supabase.rpc(
-          "get_total_passages_for_band",
-          { p_band: kid.band, p_site_id: 1 }
+      const bandKey = kid.band;
+
+      if (!bandTotals[bandKey]) {
+        const { data: totalBandRows, error: totalBandError } = await supabase.rpc(
+          "get_all_passages_for_band",
+          { p_band: kid.band }
         );
-        totals[kid.band] = totalRows ?? 1;
+
+        if (totalBandError) {
+          console.error("❌ get_all_passages_for_band failed:", totalBandError);
+          bandTotals[bandKey] = 1;
+        } else {
+          bandTotals[bandKey] = totalBandRows ?? 1;
+        }
       }
     }
   }
 
+  // ------------------------------
+  // Completed passages per kid (band-wide)
+  // ------------------------------
+  const completedCounts: Record<string, number> = {};
 
+  if (progressData) {
+    for (const kid of progressData) {
+      const key = `${kid.band}-${kid.site_id}-${kid.passage_index}`;
+
+      if (!completedCounts[key]) {
+        const { data: completedRows, error: completedError } = await supabase.rpc(
+          "get_completed_passages_for_band_position",
+          {
+            p_band: kid.band,
+            p_site_id: kid.site_id,
+            p_passage_index: kid.passage_index,
+          }
+        );
+
+        if (completedError) {
+          console.error("❌ get_completed_passages_for_band_position failed:", completedError);
+          completedCounts[key] = 0;
+        } else {
+          completedCounts[key] = completedRows ?? 0;
+        }
+      }
+    }
+  }
+
+  // =========================================================
+  // SECTION 4 — Render
+  // =========================================================
   return (
     <div
       style={{
@@ -137,8 +172,21 @@ const { updateReadingStatusAction } = await import("./actions");
             {/* SECTION 5 — Kid Progress Cards */}
             {/* ========================================================= */}
             {progressData?.map((kid: ParentKidProgress) => {
-              const total = totals[kid.band] ?? 1;
-              const percent = Math.round((kid.passage_index / total) * 100);
+              const totalBand = bandTotals[kid.band] ?? 1;
+              const key = `${kid.band}-${kid.site_id}-${kid.passage_index}`;
+              const completed = completedCounts[key] ?? 0;
+
+              // Derived status
+              let derivedStatus: string;
+              if (completed <= 0) {
+                derivedStatus = "Not Started";
+              } else if (completed >= totalBand) {
+                derivedStatus = "Completed";
+              } else {
+                derivedStatus = "Reading";
+              }
+
+              const percent = Math.round((completed / totalBand) * 100);
 
               return (
                 <div
@@ -155,12 +203,11 @@ const { updateReadingStatusAction } = await import("./actions");
                 >
                   <p><strong>Name:</strong> {kid.kid_name}</p>
                   <p><strong>Band:</strong> {kid.band}</p>
-                  <p><strong>Passage Index:</strong> {kid.passage_index} / {total}</p>
-                  <p><strong>Status:</strong> {kid.status}</p>
+                  <p><strong>Site:</strong> {kid.site_id}</p>
+                  <p><strong>Passage Index:</strong> {kid.passage_index}</p>
+                  <p><strong>Status:</strong> {derivedStatus}</p>
 
-                  {/* ========================================================= */}
-                  {/* SECTION 6 — Progress Bar */}
-                  {/* ========================================================= */}
+                  {/* Band-wide progress bar */}
                   <div
                     style={{
                       marginTop: "15px",
@@ -184,46 +231,6 @@ const { updateReadingStatusAction } = await import("./actions");
                   <p style={{ marginTop: "5px", fontWeight: "bold" }}>
                     {percent}% Complete
                   </p>
-
-                  {/* ========================================================= */}
-                  {/* SECTION 7 — Status Update Form */}
-                  {/* ========================================================= */}
-                  <form action={updateReadingStatusAction} style={{ marginTop: "15px" }}>
-                    <input type="hidden" name="kidId" value={kid.kid_id} />
-
-                    <label style={{ marginRight: "10px" }}>
-                      Change Status:
-                    </label>
-
-                    <select
-                      name="newStatus"
-                      defaultValue={kid.status}
-                      style={{
-                        padding: "6px",
-                        borderRadius: "6px",
-                        marginRight: "10px",
-                      }}
-                    >
-                      <option value="not started">Not Started</option>
-                      <option value="reading">Reading</option>
-                      <option value="completed">Completed</option>
-                    </select>
-
-                    <button
-                      type="submit"
-                      style={{
-                        backgroundColor: "#4A90E2",
-                        color: "white",
-                        padding: "6px 12px",
-                        borderRadius: "6px",
-                        border: "none",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Update
-                    </button>
-                  </form>
                 </div>
               );
             })}
