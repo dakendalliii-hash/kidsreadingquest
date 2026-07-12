@@ -3,7 +3,6 @@ export const runtime = "nodejs";
 
 import { getAuthState } from "@/lib/auth/getAuthState";
 import NavBar from "./NavBar";
-
 import InactivityLogout from "./InactivityLogout";
 
 export default async function NavBarWrapper() {

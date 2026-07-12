@@ -49,17 +49,17 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
       {/* SECTION 4 — LEFT SIDE: HOME LINK */}
       {/* ========================================================= */}
       <div>
-<Link
-  href="/"
-  style={{
-    color: "white",
-    fontWeight: "bold",
-    fontSize: "1.1rem",
-    textDecoration: "none",
-  }}
->
-  Home
-</Link>
+        <Link
+          href="/"
+          style={{
+            color: "white",
+            fontWeight: "bold",
+            fontSize: "1.1rem",
+            textDecoration: "none",
+          }}
+        >
+          Home
+        </Link>
       </div>
 
       {/* ========================================================= */}
@@ -109,6 +109,30 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
             >
               Sign Up
             </Link>
+
+            {/* ========================================================= */}
+            {/* CONTACT US — ONLY ON HOME PAGE                          */}
+            {/* ========================================================= */}
+            {pathname === "/" && (
+              <Link
+                href="/contact"
+                style={{
+                  backgroundColor: "#f5f6fa",
+                  color: "#2c3e50",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 14px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "0.95rem",
+                  minWidth: "90px",
+                  textAlign: "center",
+                  textDecoration: "none",
+                }}
+              >
+                Contact Us
+              </Link>
+            )}
           </>
         )}
 
@@ -136,53 +160,53 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
               </button>
             )}
 
-{/* ========================================================= */}
-{/* TECHNICAL INSTRUCTIONS — ONLY WHEN LOGGED IN              */}
-{/* ========================================================= */}
-{isLoggedIn && (
-  <Link
-    href="/help/microphone"
-    style={{
-      backgroundColor: "#f5f6fa",
-      color: "#2c3e50",
-      border: "none",
-      borderRadius: "6px",
-      padding: "6px 14px",
-      cursor: "pointer",
-      fontWeight: "bold",
-      fontSize: "0.95rem",
-      minWidth: "90px",
-      textAlign: "center",
-      textDecoration: "none",
-    }}
-  >
-    Technical Instructions
-  </Link>
-)}
+            {/* ========================================================= */}
+            {/* TECHNICAL INSTRUCTIONS — ONLY WHEN LOGGED IN              */}
+            {/* ========================================================= */}
+            {isLoggedIn && (
+              <Link
+                href="/help/microphone"
+                style={{
+                  backgroundColor: "#f5f6fa",
+                  color: "#2c3e50",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 14px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "0.95rem",
+                  minWidth: "90px",
+                  textAlign: "center",
+                  textDecoration: "none",
+                }}
+              >
+                Technical Instructions
+              </Link>
+            )}
 
-{/* ========================================================= */}
-{/* LOGOUT BUTTON                                             */}
-{/* ========================================================= */}
-{isLoggedIn && (
-  <form action="/logout" method="post">
-    <button
-      type="submit"
-      style={{
-        backgroundColor: "#f5f6fa",
-        color: "#2c3e50",
-        border: "none",
-        borderRadius: "6px",
-        padding: "6px 14px",
-        cursor: "pointer",
-        fontWeight: "bold",
-        fontSize: "0.95rem",
-        minWidth: "90px",
-      }}
-    >
-      Logout
-    </button>
-  </form>
-)}
+            {/* ========================================================= */}
+            {/* LOGOUT BUTTON                                             */}
+            {/* ========================================================= */}
+            {isLoggedIn && (
+              <form action="/logout" method="post">
+                <button
+                  type="submit"
+                  style={{
+                    backgroundColor: "#f5f6fa",
+                    color: "#2c3e50",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "6px 14px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "0.95rem",
+                    minWidth: "90px",
+                  }}
+                >
+                  Logout
+                </button>
+              </form>
+            )}
           </>
         )}
       </div>
