@@ -10,51 +10,43 @@ import ManageKidsClient from "./ManageKidsClient";
 // =========================================================
 
 // ------------------------------
-// ADD KID
+// ADD KID — RPC FUNCTION
 // ------------------------------
 async function addKid(formData: FormData) {
   "use server";
 
   const supabase = await createServerSupabaseClient();
+
   const name = formData.get("name") as string;
-  const level = formData.get("level") as string;
+  const age = Number(formData.get("age"));
   const parentId = formData.get("parentId") as string;
 
-  // Insert kid record (age removed)
-  const { data: kidInsert, error: kidError } = await supabase
-    .from("kids")
-    .insert({
-      name,
-      reading_level: level,
-      parent_id: parentId,
-    })
-    .select("id")
-    .single();
+  // Compute band from age
+  let band = "";
+  if (age >= 4 && age <= 5) band = "A 4-5";
+  else if (age >= 6 && age <= 7) band = "B 6-7";
+  else if (age >= 8 && age <= 9) band = "C 8-9";
+  else throw new Error("Invalid age.");
 
-  if (kidError || !kidInsert) {
-    console.error("❌ Failed to insert kid:", kidError);
+  const { data, error } = await supabase.rpc("create_kid_parent_records", {
+    p_parent_record_id: parentId,
+    p_name: name,
+    p_reading_level: band,
+    p_age: age,
+    p_email: `${crypto.randomUUID()}@kid.local`,
+    p_password: crypto.randomUUID(),
+  });
+
+  if (error) {
+    console.error("❌ RPC create_kid_parent_records failed:", error);
     throw new Error("Failed to add kid.");
-  }
-
-  // Initialize progress record
-  const kidId = kidInsert.id;
-  const { error: progressError } = await supabase
-    .from("progress")
-    .insert({
-      kid_id: kidId,
-      status: "not started",
-      band: level,
-    });
-
-  if (progressError) {
-    console.error("❌ Failed to insert progress:", progressError);
   }
 
   revalidatePath("/parent/manage-kids");
 }
 
 // ------------------------------
-// UPDATE KID
+// UPDATE KID — FUNCTION CALL
 // ------------------------------
 async function updateKid(formData: FormData) {
   "use server";
@@ -64,20 +56,18 @@ async function updateKid(formData: FormData) {
   const name = formData.get("name") as string;
   const level = formData.get("level") as string;
 
-  // Update name only (age removed)
-  const { error: kidError } = await supabase
-    .from("kids")
-    .update({
-      name,
-    })
-    .eq("id", kidId);
+  // 1️⃣ Update name via FUNCTION
+  const { error: updateError } = await supabase.rpc("update_kid_records", {
+    p_kid_id: kidId,
+    p_name: name,
+  });
 
-  if (kidError) {
-    console.error("❌ Failed to update kid:", kidError);
+  if (updateError) {
+    console.error("❌ RPC update_kid_records failed:", updateError);
     throw new Error("Failed to update kid.");
   }
 
-  // Update band + progress via RPC
+  // 2️⃣ Update band + progress via existing RPC
   const { error: rpcError } = await supabase.rpc("update_kid_band", {
     p_kid_id: kidId,
     p_band: level,
@@ -92,7 +82,7 @@ async function updateKid(formData: FormData) {
 }
 
 // ------------------------------
-// DELETE KID
+// DELETE KID — still direct (will convert later)
 // ------------------------------
 async function deleteKid(formData: FormData) {
   "use server";

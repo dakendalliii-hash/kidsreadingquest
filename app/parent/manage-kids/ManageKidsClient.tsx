@@ -1,6 +1,6 @@
 // =========================================================
 // FILE: ManageKidsClient.tsx
-// PURPOSE: Manage Kids with Name + Level (Age removed)
+// PURPOSE: Manage Kids with Name + Age (Level auto-assigned)
 // =========================================================
 
 "use client";
@@ -13,6 +13,7 @@ import ActionButton from "@/components/ActionButton";
 type Kid = {
   id: string;
   name: string;
+  age: number | null;
   reading_level: string | null;
 };
 
@@ -36,7 +37,7 @@ export default function ManageKidsClient({
   const [localKids, setLocalKids] = useState<Kid[]>(kids);
 
   const [name, setName] = useState("");
-  const [level, setLevel] = useState("");
+  const [age, setAge] = useState("");
 
   // =========================================================
   // UPDATE KID (with confirmation)
@@ -86,21 +87,28 @@ export default function ManageKidsClient({
           <form
             action={async (formData) => {
               const newName = formData.get("name") as string;
-              const newLevel = formData.get("level") as string;
+              const newAge = Number(formData.get("age"));
 
               await addKid(formData);
+
+              // Compute band locally for UI
+              let band = "";
+              if (newAge >= 4 && newAge <= 5) band = "A 4-5";
+              else if (newAge >= 6 && newAge <= 7) band = "B 6-7";
+              else if (newAge >= 8 && newAge <= 9) band = "C 8-9";
 
               setLocalKids((prev) => [
                 ...prev,
                 {
                   id: crypto.randomUUID(),
                   name: newName,
-                  reading_level: newLevel,
+                  age: newAge,
+                  reading_level: band,
                 },
               ]);
 
               setName("");
-              setLevel("");
+              setAge("");
 
               router.refresh();
             }}
@@ -117,17 +125,20 @@ export default function ManageKidsClient({
               className="input-field"
             />
 
+            {/* AGE DROPDOWN */}
             <select
-              name="level"
+              name="age"
               required
-              value={level}
-              onChange={(e) => setLevel(e.target.value)}
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
               className="input-field"
             >
-              <option value="">Select level</option>
-              <option value="A">A 4-5</option>
-              <option value="B">B 6-7</option>
-              <option value="C">C 8-9</option>
+              <option value="">Select age</option>
+              {[4, 5, 6, 7, 8, 9].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
             </select>
 
             <ActionButton label="Add Kid" />
@@ -196,15 +207,16 @@ export default function ManageKidsClient({
                               className="input-field"
                             />
 
+                            {/* LEVEL DROPDOWN REMAINS HERE */}
                             <select
                               name="level"
                               defaultValue={kid.reading_level ?? ""}
                               className="input-field"
                             >
                               <option value="">Select level</option>
-                              <option value="A">A 4-5</option>
-                              <option value="B">B 6-7</option>
-                              <option value="C">C 8-9</option>
+                              <option value="A 4-5">A 4-5</option>
+                              <option value="B 6-7">B 6-7</option>
+                              <option value="C 8-9">C 8-9</option>
                             </select>
 
                             <ActionButton label="Update" />
