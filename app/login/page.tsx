@@ -112,7 +112,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 name="email"
-                placeholder="name@company.com"
+                placeholder="name@email_provider.com"
                 required
                 style={{
                   width: "100%",
