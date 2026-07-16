@@ -42,7 +42,10 @@ async function addKid(formData: FormData) {
     throw new Error("Failed to add kid.");
   }
 
-  revalidatePath("/parent/manage-kids");
+  const newKidId = data;
+
+  // ⭐ NEW BEHAVIOR: Immediately redirect to assessment page
+  redirect(`/kids/${newKidId}/assessment`);
 }
 
 // ------------------------------
@@ -82,7 +85,7 @@ async function updateKid(formData: FormData) {
 }
 
 // ------------------------------
-// DELETE KID — still direct (will convert later)
+// DELETE KID — still direct (allowed by your rules)
 // ------------------------------
 async function deleteKid(formData: FormData) {
   "use server";

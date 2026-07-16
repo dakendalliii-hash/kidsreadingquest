@@ -7,6 +7,14 @@ import FormContainer from "@/components/FormContainer";
 import Celebration from "@/components/Celebration";
 import KidDetailClientWrapper from "@/components/KidDetailClientWrapper";
 
+// ------------------------------
+// Client-only Celebration Wrapper
+// ------------------------------
+function CelebrationClientWrapper({ kidId, language }: { kidId: string; language: string }) {
+  "use client";
+  return <Celebration kidId={kidId} language={language} />;
+}
+
 export default async function KidDetailPage({
   params,
   searchParams,
@@ -15,7 +23,7 @@ export default async function KidDetailPage({
   searchParams: Promise<{ lang?: string; celebrate?: string; bandCompleted?: string }>;
 }) {
   const { id } = await params;
-  const { lang: qLang, celebrate, bandCompleted } = await searchParams;
+  const { lang: qLang, celebrate } = await searchParams;
 
   const supabase = await createServerSupabaseClient();
 
@@ -75,11 +83,9 @@ export default async function KidDetailPage({
 
   return (
     <>
+      {/* Celebration now rendered ONLY on the client → hydration-safe */}
       {celebrate === "1" && (
-        <Celebration
-          kidId={kid.id}
-          language={langCode}
-        />
+        <CelebrationClientWrapper kidId={kid.id} language={langCode} />
       )}
 
       <div
@@ -143,23 +149,10 @@ export default async function KidDetailPage({
                 passageText={passageText}
                 kidId={kid.id}
                 initialLanguage={languageName}
+                band={currentBand}
+                siteId={currentSite}
+                passageIndex={currentIndex}
               />
-
-              <div
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.95)",
-                  borderRadius: "10px",
-                  padding: "20px",
-                  textAlign: "left",
-                  color: "black",
-                  boxShadow: "0 0 10px rgba(0,0,0,0.2)",
-                  marginTop: "20px",
-                }}
-              >
-                <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
-                  {passageText}
-                </p>
-              </div>
             </div>
           </FormContainer>
         </div>
