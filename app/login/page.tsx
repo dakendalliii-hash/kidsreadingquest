@@ -172,17 +172,17 @@ export default function LoginPage() {
           {/* SECTION 6 — LINKS (Forgot Password / Sign Up) */}
           {/* ========================================================= */}
           <div style={{ marginTop: "20px" }}>
-            <a
-              href="#"
-              style={{
-                color: "black",
-                textDecoration: "underline",
-                display: "block",
-                marginBottom: "10px",
-              }}
-            >
-              Forgot Password?
-            </a>
+<a
+  href="/forgot-password"
+  style={{
+    color: "black",
+    textDecoration: "underline",
+    display: "block",
+    marginBottom: "10px",
+  }}
+>
+  Forgot Password?
+</a>
 
             <span style={{ color: "black" }}>
               Don’t have an account?{" "}

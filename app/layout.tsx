@@ -76,7 +76,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   }}
 >
   <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "bold" }}>
-    Welcome to Kids Reading Quest
+    Welcome to Kids Read Quest
   </h1>
 
   {/* Only show this line on the login page */}
