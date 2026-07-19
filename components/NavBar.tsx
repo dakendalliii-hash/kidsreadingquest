@@ -12,16 +12,10 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // =========================================================
-  // SECTION 1 — BACK BUTTON VISIBILITY LOGIC
-  // =========================================================
   const showBackButton =
     pathname.startsWith("/parent") ||
     pathname.startsWith("/kids/");
 
-  // =========================================================
-  // SECTION 2 — BACK BUTTON HANDLER
-  // =========================================================
   const handleBack = () => {
     if (pathname.startsWith("/kids/")) {
       router.push("/parent");
@@ -30,9 +24,6 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
     }
   };
 
-  // =========================================================
-  // SECTION 3 — NAVBAR RENDER
-  // =========================================================
   return (
     <nav
       style={{
@@ -45,9 +36,6 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
         boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
       }}
     >
-      {/* ========================================================= */}
-      {/* SECTION 4 — LEFT SIDE: HOME LINK */}
-      {/* ========================================================= */}
       <div>
         <Link
           href="/"
@@ -62,14 +50,7 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
         </Link>
       </div>
 
-      {/* ========================================================= */}
-      {/* SECTION 5 — RIGHT SIDE BUTTONS */}
-      {/* ========================================================= */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-
-        {/* ========================================================= */}
-        {/* FAQ BUTTON — ALWAYS SHOWN, LEFT-MOST IN RIGHT GROUP      */}
-        {/* ========================================================= */}
         <Link
           href="/faq"
           style={{
@@ -89,10 +70,11 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
           FAQ
         </Link>
 
-        {/* ========================================================= */}
-        {/* SHOW LOGIN + SIGNUP ON /login, /, AND /update-password   */}
-        {/* ========================================================= */}
-        {(pathname === "/login" || pathname === "/" || pathname === "/update-password") && (
+        {/* ⭐ FIXED: Added /forgot-password to safe pages */}
+        {(pathname === "/login" ||
+          pathname === "/" ||
+          pathname === "/forgot-password" ||
+          pathname === "/update-password") && (
           <>
             <Link
               href="/login"
@@ -155,55 +137,14 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
           </>
         )}
 
-        {/* ========================================================= */}
-        {/* SHOW BACK + LOGOUT ON ALL OTHER PAGES                    */}
-        {/* ========================================================= */}
-        {pathname !== "/login" && pathname !== "/" && pathname !== "/update-password" && (
-          <>
-            {showBackButton && (
-              <button
-                onClick={handleBack}
-                style={{
-                  backgroundColor: "#f5f6fa",
-                  color: "#2c3e50",
-                  border: "none",
-                  borderRadius: "6px",
-                  padding: "6px 14px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "0.95rem",
-                  minWidth: "90px",
-                }}
-              >
-                Back
-              </button>
-            )}
-
-            {isLoggedIn && (
-              <Link
-                href="/help/microphone"
-                style={{
-                  backgroundColor: "#f5f6fa",
-                  color: "#2c3e50",
-                  border: "none",
-                  borderRadius: "6px",
-                  padding: "6px 14px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "0.95rem",
-                  minWidth: "90px",
-                  textAlign: "center",
-                  textDecoration: "none",
-                }}
-              >
-                Technical Instructions
-              </Link>
-            )}
-
-            {isLoggedIn && (
-              <form action="/logout" method="post">
+        {pathname !== "/login" &&
+          pathname !== "/" &&
+          pathname !== "/forgot-password" &&
+          pathname !== "/update-password" && (
+            <>
+              {showBackButton && (
                 <button
-                  type="submit"
+                  onClick={handleBack}
                   style={{
                     backgroundColor: "#f5f6fa",
                     color: "#2c3e50",
@@ -216,12 +157,53 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
                     minWidth: "90px",
                   }}
                 >
-                  Logout
+                  Back
                 </button>
-              </form>
-            )}
-          </>
-        )}
+              )}
+
+              {isLoggedIn && (
+                <Link
+                  href="/help/microphone"
+                  style={{
+                    backgroundColor: "#f5f6fa",
+                    color: "#2c3e50",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "6px 14px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "0.95rem",
+                    minWidth: "90px",
+                    textAlign: "center",
+                    textDecoration: "none",
+                  }}
+                >
+                  Technical Instructions
+                </Link>
+              )}
+
+              {isLoggedIn && (
+                <form action="/logout" method="post">
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: "#f5f6fa",
+                      color: "#2c3e50",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "6px 14px",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      fontSize: "0.95rem",
+                      minWidth: "90px",
+                    }}
+                  >
+                    Logout
+                  </button>
+                </form>
+              )}
+            </>
+          )}
       </div>
     </nav>
   );

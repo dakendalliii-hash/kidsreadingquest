@@ -1,12 +1,10 @@
 export const runtime = "nodejs";
-
 export const dynamic = "force-dynamic";
 
 import "./globals.css";
 import { ReactNode } from "react";
-import NavBar from "@/components/NavBar";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import NavBarWrapper from "@/components/NavBarWrapper";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerSupabaseClient();
@@ -38,7 +36,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="en">
       <body style={{ margin: 0, padding: 0 }}>
 
-<NavBarWrapper />
+        {/* NavBar always shown — NavBar itself handles reset pages */}
+        <NavBarWrapper />
 
         <div
           style={{
@@ -63,30 +62,30 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             }}
           />
 
-{/* GLOBAL WELCOME TEXT — anchored inside DiverseKids background */}
-<div
-  style={{
-    position: "absolute",
-    top: "20px", // nestles into the top-left corner of the graphic
-    left: "30px",
-    zIndex: 9999,
-    color: "white",
-    textShadow: "2px 2px 4px rgba(0,0,0,0.6)",
-    pointerEvents: "none",
-  }}
->
-  <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "bold" }}>
-    Welcome to Kids Read Quest
-  </h1>
+          {/* GLOBAL WELCOME TEXT */}
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              left: "30px",
+              zIndex: 9999,
+              color: "white",
+              textShadow: "2px 2px 4px rgba(0,0,0,0.6)",
+              pointerEvents: "none",
+            }}
+          >
+            <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "bold" }}>
+              Welcome to Kids Read Quest
+            </h1>
 
-  {/* Only show this line on the login page */}
-  {typeof window !== "undefined" &&
-    window.location.pathname === "/login" && (
-      <p style={{ margin: 0, fontSize: "1.2rem" }}>
-        Please log in or sign up to continue.
-      </p>
-    )}
-</div>
+            {/* Only show this line on the login page */}
+            {typeof window !== "undefined" &&
+              window.location.pathname === "/login" && (
+                <p style={{ margin: 0, fontSize: "1.2rem" }}>
+                  Please log in or sign up to continue.
+                </p>
+              )}
+          </div>
 
           <div style={{ position: "relative", zIndex: 1, color: "white" }}>
             {children}

@@ -7,14 +7,24 @@ import FormContainer from "@/components/FormContainer";
 async function handleUpdate(formData: FormData) {
   "use server";
 
-  const supabase = await createServerSupabaseClient();
   const newPassword = formData.get("password") as string;
+  const code = formData.get("code") as string;
 
-  const { error } = await supabase.auth.updateUser({
+  const supabase = await createServerSupabaseClient();
+
+  // ⭐ REQUIRED STEP: Activate the reset session
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (exchangeError) {
+    throw new Error("Password update failed.");
+  }
+
+  // ⭐ Now the session is active — update password
+  const { error: updateError } = await supabase.auth.updateUser({
     password: newPassword,
   });
 
-  if (!error) {
+  if (!updateError) {
     redirect("/login");
   }
 
@@ -74,6 +84,9 @@ export default async function UpdatePasswordPage(
           </p>
 
           <form action={handleUpdate}>
+            {/* ⭐ Hidden input to pass reset code to server action */}
+            <input type="hidden" name="code" value={code} />
+
             <div style={{ marginBottom: "20px", textAlign: "left" }}>
               <label
                 htmlFor="password"
@@ -102,9 +115,6 @@ export default async function UpdatePasswordPage(
                 }}
               />
 
-              {/* ========================================================= */}
-              {/* PASSWORD GUIDANCE BLOCK — ADDED EXACTLY AS REQUESTED     */}
-              {/* ========================================================= */}
               <p
                 style={{
                   color: "black",

@@ -1,64 +1,126 @@
-// =========================================================
-// LOGIN PAGE — COLORS ALIGNED WITH PARENT DASHBOARD
-// =========================================================
-
 export const runtime = "nodejs";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
-import AuthCard from "@/components/AuthCard";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
+const MAX_ATTEMPTS = 5;
+const COOLDOWN_MINUTES = 10;
 
-// =========================================================
-// SECTION 1 — SERVER ACTION: LOGIN (TOP LEVEL)
-// =========================================================
 async function handleLogin(formData: FormData) {
   "use server";
 
   const supabase = await createServerSupabaseClient();
-
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
+  // ⭐ FIX: cookies() must be awaited in Next.js 14+
+  const cookieStore = await cookies();
+
+  const attemptCookie = cookieStore.get("login_attempts");
+  const cooldownCookie = cookieStore.get("login_cooldown");
+
+  const attempts = attemptCookie ? parseInt(attemptCookie.value, 10) : 0;
+  const cooldownUntil = cooldownCookie ? parseInt(cooldownCookie.value, 10) : 0;
+  const now = Date.now();
+
+  // =========================================================
+  // ACTIVE COOLDOWN
+  // =========================================================
+  if (cooldownUntil && now < cooldownUntil) {
+    throw redirect(
+      `/login?error=${encodeURIComponent("Let's try again together!")}&attempts=${attempts}`
+    );
+  }
+
+  // =========================================================
+  // ATTEMPT LOGIN
+  // =========================================================
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
-    console.error("❌ Login failed:", error);
-    throw new Error("Login failed.");
+    const newAttempts = attempts + 1;
+
+    // Save updated attempt count
+    cookieStore.set("login_attempts", String(newAttempts), {
+      httpOnly: true,
+      path: "/",
+      maxAge: 60 * 60,
+    });
+
+    // =========================================================
+    // TOO MANY ATTEMPTS → START COOLDOWN
+    // =========================================================
+    if (newAttempts >= MAX_ATTEMPTS) {
+      const cooldownUntilTimestamp =
+        now + COOLDOWN_MINUTES * 60 * 1000;
+
+      cookieStore.set("login_cooldown", String(cooldownUntilTimestamp), {
+        httpOnly: true,
+        path: "/",
+        maxAge: COOLDOWN_MINUTES * 60,
+      });
+
+      throw redirect(
+        `/login?error=${encodeURIComponent("Let's try again together!")}&attempts=${newAttempts}`
+      );
+    }
+
+    // =========================================================
+    // NORMAL INVALID PASSWORD
+    // =========================================================
+    throw redirect(
+      `/login?error=${encodeURIComponent("Invalid Password!")}&attempts=${newAttempts}`
+    );
   }
+
+  // =========================================================
+  // SUCCESS → CLEAR ATTEMPTS + COOLDOWN
+  // =========================================================
+  cookieStore.set("login_attempts", "0", {
+    httpOnly: true,
+    path: "/",
+    maxAge: 60 * 60,
+  });
+
+  cookieStore.set("login_cooldown", "0", {
+    httpOnly: true,
+    path: "/",
+    maxAge: 60 * 60,
+  });
 
   redirect("/parent");
 }
 
-// =========================================================
-// SECTION 2 — PAGE COMPONENT
-// =========================================================
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
+  const errorMessage = params?.error;
+  const attempts = params?.attempts;
+
   return (
-<div
-  style={{
-    backgroundImage: "url('/DiverseKids.png')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    backgroundAttachment: "fixed",
-    minHeight: "100vh",
-    padding: "80px 40px 40px 40px", // UPDATED
-  }}
->
+    <div
+      style={{
+        backgroundImage: "url('/DiverseKids.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+        minHeight: "100vh",
+        padding: "80px 40px 40px 40px",
+      }}
+    >
       <FormContainer>
-	<div className="page-container">
-	<AuthCard>
-        {/* ========================================================= */}
-        {/* SECTION 3 — FORM CARD (MATCHES PARENT CONTAINER) */}
-        {/* ========================================================= */}
         <div
           style={{
-            backgroundColor: "rgba(255,255,255,0.9)", // same as Parent Dashboard container
+            backgroundColor: "rgba(255,255,255,0.9)",
             borderRadius: "16px",
             padding: "40px",
             width: "85%",
@@ -68,9 +130,6 @@ export default function LoginPage() {
             boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
           }}
         >
-          {/* ========================================================= */}
-          {/* SECTION 4 — HEADERS */}
-          {/* ========================================================= */}
           <h1
             style={{
               color: "black",
@@ -79,24 +138,11 @@ export default function LoginPage() {
               marginBottom: "10px",
             }}
           >
-            Log In to Your Account
+            Login
           </h1>
 
-          <p
-            style={{
-              color: "black",
-              fontSize: "1.1rem",
-              marginBottom: "25px",
-            }}
-          >
-            Welcome back!
-          </p>
-
-          {/* ========================================================= */}
-          {/* SECTION 5 — LOGIN FORM */}
-          {/* ========================================================= */}
           <form action={handleLogin}>
-            <div style={{ marginBottom: "15px", textAlign: "left" }}>
+            <div style={{ marginBottom: "20px", textAlign: "left" }}>
               <label
                 htmlFor="email"
                 style={{
@@ -112,8 +158,8 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 name="email"
-                placeholder="name@email_provider.com"
                 required
+                placeholder="name@email_provider.com"
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -140,8 +186,8 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 name="password"
-                placeholder="••••••••"
                 required
+                placeholder="••••••••"
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -150,57 +196,76 @@ export default function LoginPage() {
                   fontSize: "1rem",
                 }}
               />
+
+              {errorMessage && (
+                <p
+                  style={{
+                    color: "red",
+                    fontWeight: "bold",
+                    marginTop: "8px",
+                  }}
+                >
+                  {errorMessage}
+                </p>
+              )}
+
+              {attempts && (
+                <p
+                  style={{
+                    color: "black",
+                    fontWeight: "bold",
+                    marginTop: "4px",
+                  }}
+                >
+                  Attempts: {attempts} / {MAX_ATTEMPTS}
+                </p>
+              )}
             </div>
 
-            {/* ========================================================= */}
-            {/* APPLY GLOBAL WIDTH RULE — SINGLE BUTTON ON ROW           */}
-            {/* ========================================================= */}
             <button
               type="submit"
               className="btn-primary form-single-button"
               style={{
-                width: "100%", // your original width preserved
+                width: "100%",
                 fontWeight: "bold",
                 fontSize: "1rem",
               }}
             >
               Login
             </button>
-          </form>
 
-          {/* ========================================================= */}
-          {/* SECTION 6 — LINKS (Forgot Password / Sign Up) */}
-          {/* ========================================================= */}
-          <div style={{ marginTop: "20px" }}>
-<a
-  href="/forgot-password"
-  style={{
-    color: "black",
-    textDecoration: "underline",
-    display: "block",
-    marginBottom: "10px",
-  }}
->
-  Forgot Password?
-</a>
+            {/* ========================================================= */}
+            {/* RESTORED LINKS — Forgot Password + Sign Up                */}
+            {/* ========================================================= */}
+            <div style={{ marginTop: "12px" }}>
+              <a
+                href="/forgot-password"
+                style={{
+                  color: "#2c3e50",
+                  fontWeight: "bold",
+                  textDecoration: "underline",
+                  fontSize: "0.95rem",
+                }}
+              >
+                Forgot Password?
+              </a>
+            </div>
 
-            <span style={{ color: "black" }}>
-              Don’t have an account?{" "}
+            <div style={{ marginTop: "8px" }}>
               <a
                 href="/signup"
                 style={{
-                  color: "black",
+                  color: "#2c3e50",
                   fontWeight: "bold",
                   textDecoration: "underline",
+                  fontSize: "0.95rem",
                 }}
               >
                 Sign Up
               </a>
-            </span>
-          </div>
+            </div>
+          </form>
         </div>
-	</AuthCard>
-	</div>
       </FormContainer>
     </div>
   );
