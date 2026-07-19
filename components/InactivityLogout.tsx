@@ -19,7 +19,7 @@ export default function InactivityLogout({ isLoggedIn }: { isLoggedIn: boolean }
 
       timeout = setTimeout(() => {
         router.push("/logout");
-      }, 240000); // 4 minutes AFTER last activity
+      }, 1200000); // 20 minutes AFTER last activity
     };
 
     // Start timer only after first activity

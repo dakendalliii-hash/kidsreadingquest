@@ -68,9 +68,31 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
 
         {/* ========================================================= */}
-        {/* SHOW LOGIN + SIGNUP ON /login AND / (HOME PAGE)          */}
+        {/* FAQ BUTTON — ALWAYS SHOWN, LEFT-MOST IN RIGHT GROUP      */}
         {/* ========================================================= */}
-        {(pathname === "/login" || pathname === "/") && (
+        <Link
+          href="/faq"
+          style={{
+            backgroundColor: "#f5f6fa",
+            color: "#2c3e50",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 14px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.95rem",
+            minWidth: "90px",
+            textAlign: "center",
+            textDecoration: "none",
+          }}
+        >
+          FAQ
+        </Link>
+
+        {/* ========================================================= */}
+        {/* SHOW LOGIN + SIGNUP ON /login, /, AND /update-password   */}
+        {/* ========================================================= */}
+        {(pathname === "/login" || pathname === "/" || pathname === "/update-password") && (
           <>
             <Link
               href="/login"
@@ -110,9 +132,6 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
               Sign Up
             </Link>
 
-            {/* ========================================================= */}
-            {/* CONTACT US — ONLY ON HOME PAGE                          */}
-            {/* ========================================================= */}
             {pathname === "/" && (
               <Link
                 href="/contact"
@@ -139,7 +158,7 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
         {/* ========================================================= */}
         {/* SHOW BACK + LOGOUT ON ALL OTHER PAGES                    */}
         {/* ========================================================= */}
-        {pathname !== "/login" && pathname !== "/" && (
+        {pathname !== "/login" && pathname !== "/" && pathname !== "/update-password" && (
           <>
             {showBackButton && (
               <button
@@ -160,9 +179,6 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
               </button>
             )}
 
-            {/* ========================================================= */}
-            {/* TECHNICAL INSTRUCTIONS — ONLY WHEN LOGGED IN              */}
-            {/* ========================================================= */}
             {isLoggedIn && (
               <Link
                 href="/help/microphone"
@@ -184,9 +200,6 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
               </Link>
             )}
 
-            {/* ========================================================= */}
-            {/* LOGOUT BUTTON                                             */}
-            {/* ========================================================= */}
             {isLoggedIn && (
               <form action="/logout" method="post">
                 <button

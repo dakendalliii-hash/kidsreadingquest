@@ -21,7 +21,12 @@ async function handleUpdate(formData: FormData) {
   throw new Error("Password update failed.");
 }
 
-export default function UpdatePasswordPage() {
+export default async function UpdatePasswordPage(
+  { searchParams }: { searchParams: Promise<Record<string, string | undefined>> }
+) {
+  const params = await searchParams;
+  const code = params.code;
+
   return (
     <div
       style={{
@@ -96,6 +101,21 @@ export default function UpdatePasswordPage() {
                   fontSize: "1rem",
                 }}
               />
+
+              {/* ========================================================= */}
+              {/* PASSWORD GUIDANCE BLOCK — ADDED EXACTLY AS REQUESTED     */}
+              {/* ========================================================= */}
+              <p
+                style={{
+                  color: "black",
+                  fontSize: "0.9rem",
+                  marginTop: "6px",
+                  opacity: 0.85,
+                }}
+              >
+                Password must be at least <strong>10 characters</strong>.  
+                You may use <strong>letters, numbers, spaces, and any standard symbols</strong>.
+              </p>
             </div>
 
             <button

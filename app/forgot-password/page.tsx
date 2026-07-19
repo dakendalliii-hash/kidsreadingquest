@@ -59,10 +59,9 @@ export default function ForgotPasswordPage() {
             }}
           >
 
-Enter your email and we’ll send you a reset link. 
+Enter your email and click the button.
+<b>Supabase</b> will send you an email with a link. 
 Then after opening the email, click on reset link.  
-You will receive another email with a verification code from Vercel. 
-After entering the code, you will then be able to enter a new password. 
 
           </p>
 
