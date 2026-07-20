@@ -45,7 +45,12 @@ export default function MicReader({
         : "Reading accuracy too low.",
   };
 
+  // ---------------------------------------------------------
+  // ⭐ Strict Mode Guard — prevents double initialization
+  // ---------------------------------------------------------
   useEffect(() => {
+    if (recognitionRef.current) return; // <— THIS FIXES DOUBLE RENDER
+
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
@@ -65,19 +70,13 @@ export default function MicReader({
       await handleTranscript(transcript);
     };
 
-    recognition.onend = () => {
-      if (isListening && recognitionRef.current) {
-        recognitionRef.current.start();
-      }
-    };
-
     recognition.onerror = (event: any) => {
       setErrorMessage("Microphone error: " + event.error);
       setIsListening(false);
     };
 
     recognitionRef.current = recognition;
-  }, [isListening, language]);
+  }, [language]);
 
   async function handleTranscript(transcript: string) {
     deleteAudio();
@@ -86,7 +85,12 @@ export default function MicReader({
     setTimeout(() => setShowPrivacyBanner(false), 4000);
 
     try {
-      const res = await fetch(`/kids/${kidId}/read-aloud`, {
+      const postUrl =
+        kidId === "assessment"
+          ? "/assessment/read-aloud"
+          : `/kids/${kidId}/read-aloud`;
+
+      const res = await fetch(postUrl, {
         method: "POST",
         body: JSON.stringify({
           transcript,
@@ -101,16 +105,24 @@ export default function MicReader({
 
       const data = await res.json();
 
+      if (kidId === "assessment") {
+        const url = `/assessment/results?wpm=${data.wpm ?? 0}&accuracy=${
+          data.accuracy ?? 0
+        }&errors=${data.errors ?? 0}`;
+        onSuccessRedirect(url);
+        return;
+      }
+
       if (data.success && data.celebrate) {
         const url = `/kids/${kidId}?celebrate=1&bandCompleted=${
           data.bandCompleted ? "1" : "0"
         }&lang=${language}&t=${Date.now()}`;
-
         onSuccessRedirect(url);
       } else {
         setErrorMessage(data.message || ui.lowAccuracy);
       }
     } catch (err) {
+      console.error("MicReader fetch error:", err);
       setErrorMessage(ui.serverError);
     }
 
@@ -119,9 +131,7 @@ export default function MicReader({
 
   function deleteAudio() {
     try {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      recognitionRef.current?.stop();
     } catch (_) {}
   }
 

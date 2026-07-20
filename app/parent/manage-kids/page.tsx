@@ -44,8 +44,9 @@ async function addKid(formData: FormData) {
 
   const newKidId = data;
 
-  // ⭐ NEW BEHAVIOR: Immediately redirect to assessment page
-  redirect(`/kids/${newKidId}/assessment`);
+  // ⭐ Redirect removed exactly as requested
+  // Previously:
+  // redirect(`/kids/${newKidId}/assessment`);
 }
 
 // ------------------------------

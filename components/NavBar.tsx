@@ -70,6 +70,26 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
           FAQ
         </Link>
 
+        {/* ⭐ NEW BUTTON — PUBLIC ASSESSMENT PAGE */}
+        <Link
+          href="/assessment"
+          style={{
+            backgroundColor: "#f5f6fa",
+            color: "#2c3e50",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 14px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.95rem",
+            minWidth: "90px",
+            textAlign: "center",
+            textDecoration: "none",
+          }}
+        >
+          Take Assessment Test
+        </Link>
+
         {/* ⭐ FIXED: Added /forgot-password to safe pages */}
         {(pathname === "/login" ||
           pathname === "/" ||
