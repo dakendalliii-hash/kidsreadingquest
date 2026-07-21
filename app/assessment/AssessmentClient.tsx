@@ -1,20 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import MicReader from "@/components/MicReader";
-import { useRouter } from "next/navigation";
 
-export default function AssessmentClient({
-  band,
-  title,
-  text,
-  age,
-}: {
-  band?: string;
-  title?: string;
-  text?: string;
-  age?: number | null;
-}) {
+export default function AssessmentClient() {
+  const searchParams = useSearchParams();
+  const band = searchParams.get("band") || "";
+  const title = searchParams.get("title") || "";
+  const text = searchParams.get("text") || "";
+  const age = Number(searchParams.get("age")) || null;
+
   const hasPassage = band && text;
   const [startAssessment, setStartAssessment] = useState(false);
   const router = useRouter();
@@ -151,11 +147,10 @@ export default function AssessmentClient({
 
             {startAssessment && (
               <MicReader
-                passageText={text!}
-                kidId={"assessment"}
+                passageText={text}
+                kidId="assessment"
                 language="english"
                 onSuccessRedirect={(url: string) => {
-                  // MicReader returns: /assessment/results?wpm=..&accuracy=..&errors=..
                   router.push(`${url}&age=${age}&band=${band}`);
                 }}
               />

@@ -65,10 +65,19 @@ export default function MicReader({
     recognition.interimResults = false;
     recognition.lang = language === "hindi" ? "hi-IN" : "en-US";
 
-    recognition.onresult = async (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      await handleTranscript(transcript);
-    };
+let graceTimer: any = null;
+
+recognition.onresult = async (event: any) => {
+  const transcript = event.results[0][0].transcript;
+
+  // Clear any previous timer
+  if (graceTimer) clearTimeout(graceTimer);
+
+  // ⭐ Wait 2.5 seconds before finalizing
+  graceTimer = setTimeout(() => {
+    handleTranscript(transcript);
+  }, 2500);
+};
 
     recognition.onerror = (event: any) => {
       setErrorMessage("Microphone error: " + event.error);
