@@ -15,7 +15,6 @@ async function handleLogin(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  // ⭐ FIX: cookies() must be awaited in Next.js 14+
   const cookieStore = await cookies();
 
   const attemptCookie = cookieStore.get("login_attempts");
@@ -25,18 +24,12 @@ async function handleLogin(formData: FormData) {
   const cooldownUntil = cooldownCookie ? parseInt(cooldownCookie.value, 10) : 0;
   const now = Date.now();
 
-  // =========================================================
-  // ACTIVE COOLDOWN
-  // =========================================================
   if (cooldownUntil && now < cooldownUntil) {
     throw redirect(
       `/login?error=${encodeURIComponent("Let's try again together!")}&attempts=${attempts}`
     );
   }
 
-  // =========================================================
-  // ATTEMPT LOGIN
-  // =========================================================
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -45,16 +38,12 @@ async function handleLogin(formData: FormData) {
   if (error) {
     const newAttempts = attempts + 1;
 
-    // Save updated attempt count
     cookieStore.set("login_attempts", String(newAttempts), {
       httpOnly: true,
       path: "/",
       maxAge: 60 * 60,
     });
 
-    // =========================================================
-    // TOO MANY ATTEMPTS → START COOLDOWN
-    // =========================================================
     if (newAttempts >= MAX_ATTEMPTS) {
       const cooldownUntilTimestamp =
         now + COOLDOWN_MINUTES * 60 * 1000;
@@ -70,17 +59,11 @@ async function handleLogin(formData: FormData) {
       );
     }
 
-    // =========================================================
-    // NORMAL INVALID PASSWORD
-    // =========================================================
     throw redirect(
       `/login?error=${encodeURIComponent("Invalid Password!")}&attempts=${newAttempts}`
     );
   }
 
-  // =========================================================
-  // SUCCESS → CLEAR ATTEMPTS + COOLDOWN
-  // =========================================================
   cookieStore.set("login_attempts", "0", {
     httpOnly: true,
     path: "/",
@@ -249,6 +232,22 @@ export default async function LoginPage({
               >
                 Forgot Password?
               </a>
+
+              {/* ⭐ NEW TEXT INSERTED BELOW FORGOT PASSWORD */}
+              <p
+                style={{
+                  marginTop: "8px",
+                  color: "#2c3e50",
+                  fontSize: "0.9rem",
+                  lineHeight: "1.4",
+                  fontWeight: "bold",
+                }}
+              >
+                No problem. Enter your email and we’ll send you a secure reset
+                link so you can get back in. When the email arrives, click the
+                link and follow the steps to choose a new password. If you don’t
+                see the email, check your spam folder.
+              </p>
             </div>
 
             <div style={{ marginTop: "8px" }}>

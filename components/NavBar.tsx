@@ -51,6 +51,68 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+
+        {/* ⭐ SIGN UP — FIRST */}
+        <Link
+          href="/signup"
+          style={{
+            backgroundColor: "#f5f6fa",
+            color: "#2c3e50",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 14px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.95rem",
+            minWidth: "90px",
+            textAlign: "center",
+            textDecoration: "none",
+          }}
+        >
+          Sign Up
+        </Link>
+
+        {/* ⭐ READING FITNESS TEST — SECOND */}
+        <Link
+          href="/assessment"
+          style={{
+            backgroundColor: "#f5f6fa",
+            color: "#2c3e50",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 14px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.95rem",
+            minWidth: "90px",
+            textAlign: "center",
+            textDecoration: "none",
+          }}
+        >
+          Reading Fitness Test
+        </Link>
+
+        {/* ⭐ LOGIN — THIRD */}
+        <Link
+          href="/login"
+          style={{
+            backgroundColor: "#f5f6fa",
+            color: "#2c3e50",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 14px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.95rem",
+            minWidth: "90px",
+            textAlign: "center",
+            textDecoration: "none",
+          }}
+        >
+          Login
+        </Link>
+
+        {/* ⭐ FAQ — FOURTH */}
         <Link
           href="/faq"
           style={{
@@ -70,93 +132,29 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
           FAQ
         </Link>
 
-        {/* ⭐ NEW BUTTON — PUBLIC ASSESSMENT PAGE */}
-        <Link
-          href="/assessment"
-          style={{
-            backgroundColor: "#f5f6fa",
-            color: "#2c3e50",
-            border: "none",
-            borderRadius: "6px",
-            padding: "6px 14px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-            minWidth: "90px",
-            textAlign: "center",
-            textDecoration: "none",
-          }}
-        >
-          Take Assessment Test
-        </Link>
-
-        {/* ⭐ FIXED: Added /forgot-password to safe pages */}
-        {(pathname === "/login" ||
-          pathname === "/" ||
-          pathname === "/forgot-password" ||
-          pathname === "/update-password") && (
-          <>
-            <Link
-              href="/login"
-              style={{
-                backgroundColor: "#f5f6fa",
-                color: "#2c3e50",
-                border: "none",
-                borderRadius: "6px",
-                padding: "6px 14px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "0.95rem",
-                minWidth: "90px",
-                textAlign: "center",
-                textDecoration: "none",
-              }}
-            >
-              Login
-            </Link>
-
-            <Link
-              href="/signup"
-              style={{
-                backgroundColor: "#f5f6fa",
-                color: "#2c3e50",
-                border: "none",
-                borderRadius: "6px",
-                padding: "6px 14px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "0.95rem",
-                minWidth: "90px",
-                textAlign: "center",
-                textDecoration: "none",
-              }}
-            >
-              Sign Up
-            </Link>
-
-            {pathname === "/" && (
-              <Link
-                href="/contact"
-                style={{
-                  backgroundColor: "#f5f6fa",
-                  color: "#2c3e50",
-                  border: "none",
-                  borderRadius: "6px",
-                  padding: "6px 14px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "0.95rem",
-                  minWidth: "90px",
-                  textAlign: "center",
-                  textDecoration: "none",
-                }}
-              >
-                Contact Us
-              </Link>
-            )}
-          </>
+        {/* ⭐ CONTACT US — FIFTH (only on home page, same as before) */}
+        {pathname === "/" && (
+          <Link
+            href="/contact"
+            style={{
+              backgroundColor: "#f5f6fa",
+              color: "#2c3e50",
+              border: "none",
+              borderRadius: "6px",
+              padding: "6px 14px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "0.95rem",
+              minWidth: "90px",
+              textAlign: "center",
+              textDecoration: "none",
+            }}
+          >
+            Contact Us
+          </Link>
         )}
 
+        {/* ⭐ BACK / LOGGED-IN BUTTONS — unchanged */}
         {pathname !== "/login" &&
           pathname !== "/" &&
           pathname !== "/forgot-password" &&
