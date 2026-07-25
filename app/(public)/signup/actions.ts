@@ -1,7 +1,6 @@
 "use server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 
 export async function handleSignUp(formData: FormData) {
   const supabase = await createServerSupabaseClient();
@@ -13,8 +12,8 @@ export async function handleSignUp(formData: FormData) {
 
   if (error) {
     console.error("❌ Signup failed:", error);
-    throw new Error("Signup failed.");
+    return { success: false, error: error.message };
   }
 
-  redirect("/login");
+  return { success: true };
 }

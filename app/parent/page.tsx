@@ -32,11 +32,11 @@ export default async function ParentDashboardPage() {
   if (!parentRecord) redirect("/not-authorized");
 
   // ------------------------------
-  // Fetch kids
+  // Fetch kids (UPDATED)
   // ------------------------------
   const { data: kids } = await supabase
     .from("kids")
-    .select("id, name")
+    .select("id, name, recommended_band")   // ← ADDED recommended_band
     .eq("parent_id", parentRecord.id)
     .order("name", { ascending: true });
 
@@ -84,24 +84,33 @@ export default async function ParentDashboardPage() {
         {kids && kids.length > 0 ? (
           <div style={{ marginBottom: "30px" }}>
             {kids.map((kid) => (
-              <form key={kid.id} action={`/kids/${kid.id}`} method="get">
-                <button
-                  style={{
-                    backgroundColor: "#3b4a63",
-                    color: "white",
-                    padding: "12px 24px",
-                    borderRadius: "6px",
-                    border: "none",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                    display: "block",
-                    width: "80%",
-                    margin: "0 auto 15px auto",
-                  }}
-                >
-                  {kid.name}
-                </button>
-              </form>
+              <div key={kid.id} style={{ marginBottom: "20px" }}>
+                {/* NEW: Recommended Band Display */}
+                {kid.recommended_band && (
+                  <p style={{ color: "black", marginBottom: "10px" }}>
+                    Recommended Band: <strong>{kid.recommended_band}</strong>
+                  </p>
+                )}
+
+                <form action={`/kids/${kid.id}`} method="get">
+                  <button
+                    style={{
+                      backgroundColor: "#3b4a63",
+                      color: "white",
+                      padding: "12px 24px",
+                      borderRadius: "6px",
+                      border: "none",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      display: "block",
+                      width: "80%",
+                      margin: "0 auto 15px auto",
+                    }}
+                  >
+                    {kid.name}
+                  </button>
+                </form>
+              </div>
             ))}
           </div>
         ) : (

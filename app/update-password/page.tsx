@@ -4,15 +4,27 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
 
-async function handleUpdate(formData: FormData) {
+/* ============================================================
+   SERVER ACTION — FIXED VERSION
+   - Receives searchParams via context argument
+   - Code is guaranteed to be present
+   ============================================================ */
+async function handleUpdate(
+  formData: FormData,
+  context: { searchParams: { code?: string } }
+) {
   "use server";
 
   const newPassword = formData.get("password") as string;
-  const code = formData.get("code") as string;
+  const code = context.searchParams.code;
+
+  if (!code) {
+    throw new Error("Password update failed.");
+  }
 
   const supabase = await createServerSupabaseClient();
 
-  // ⭐ REQUIRED STEP: Activate the reset session
+  // ⭐ REQUIRED: Activate the reset session using the recovery code
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
   if (exchangeError) {
@@ -31,6 +43,9 @@ async function handleUpdate(formData: FormData) {
   throw new Error("Password update failed.");
 }
 
+/* ============================================================
+   PAGE COMPONENT
+   ============================================================ */
 export default async function UpdatePasswordPage(
   { searchParams }: { searchParams: Promise<Record<string, string | undefined>> }
 ) {
@@ -83,10 +98,8 @@ export default async function UpdatePasswordPage(
             Enter your new password below.
           </p>
 
-          <form action={handleUpdate}>
-            {/* ⭐ Hidden input to pass reset code to server action */}
-            <input type="hidden" name="code" value={code} />
-
+          {/* ⭐ FIX: Bind code directly into form action URL */}
+          <form action={`/update-password?code=${code}`} method="POST">
             <div style={{ marginBottom: "20px", textAlign: "left" }}>
               <label
                 htmlFor="password"

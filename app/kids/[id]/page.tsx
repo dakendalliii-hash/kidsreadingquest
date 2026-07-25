@@ -41,7 +41,7 @@ export default async function KidDetailPage({
 
   const { data: ownershipCheck } = await supabase
     .from("kids")
-    .select("parent_id, name")
+    .select("parent_id, name, recommended_band")   // ⭐ UPDATED
     .eq("id", id)
     .single();
 
@@ -83,7 +83,6 @@ export default async function KidDetailPage({
 
   return (
     <>
-      {/* Celebration now rendered ONLY on the client → hydration-safe */}
       {celebrate === "1" && (
         <CelebrationClientWrapper kidId={kid.id} language={langCode} />
       )}
@@ -134,6 +133,20 @@ export default async function KidDetailPage({
               >
                 {kid.name}
               </h1>
+
+              {/* ⭐ NEW: Recommended Band */}
+              {ownershipCheck.recommended_band && (
+                <p
+                  style={{
+                    color: "black",
+                    fontSize: "1.1rem",
+                    marginBottom: "20px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Recommended Band: {ownershipCheck.recommended_band}
+                </p>
+              )}
 
               <p
                 style={{

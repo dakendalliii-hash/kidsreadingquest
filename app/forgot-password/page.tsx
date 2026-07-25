@@ -3,15 +3,33 @@ export const runtime = "nodejs";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import FormContainer from "@/components/FormContainer";
 
+/* ============================================================
+   SERVER ACTION — DIAGNOSTIC LOGGING ADDED
+   ============================================================ */
 async function handleReset(formData: FormData) {
   "use server";
 
   const supabase = await createServerSupabaseClient();
   const email = formData.get("email") as string;
 
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/update-password`,
+  const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/update-password`;
+
+  // ⭐ Log what URL is actually being used
+  console.log("RESET-PW redirectTo:", redirectUrl);
+  console.log("RESET-PW email:", email);
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: redirectUrl,
   });
+
+  // ⭐ Log Supabase error if present
+  if (error) {
+    console.error("RESET-PW ERROR:", error);
+    throw new Error("Reset email failed.");
+  }
+
+  // ⭐ Log success (Supabase does NOT return success info)
+  console.log("RESET-PW: Email request sent (Supabase returned no error).");
 }
 
 export default function ForgotPasswordPage() {
@@ -58,13 +76,9 @@ export default function ForgotPasswordPage() {
               marginBottom: "25px",
             }}
           >
-
-Enter your email and click the button.
-<b>Supabase</b> will send you an email with a link. 
-Then after opening the email, click on reset link.  
-
+            Enter your email and click the button.
+            <b> Supabase</b> will send you a reset link.
           </p>
-
 
           <form action={handleReset}>
             <div style={{ marginBottom: "20px", textAlign: "left" }}>
