@@ -350,8 +350,8 @@ export default function SignUpPage() {
                       marginBottom: "20px",
                     }}
                   >
-                    Limited early-access plan for the first 55 families. (Will
-                    grey out automatically once 55 parents select it.)
+                    Limited early-access plan for the first 50 families. (Will
+                    grey out automatically once 50 parents select it.)
                   </p>
 
                   <button
@@ -391,7 +391,7 @@ export default function SignUpPage() {
                     marginBottom: "10px",
                   }}
                 >
-                  Monthly Plan ($0/month)
+                  Monthly Plan ($50/month)
                 </h2>
 
                 <p

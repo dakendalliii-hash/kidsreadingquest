@@ -1,30 +1,56 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "../../../lib/supabase/server";
+import { NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  const formData = await request.formData();
-  const age = Number(formData.get("age"));
+  try {
+    // ✅ Include cookies from the incoming request
+    const supabase = await createServerSupabaseClient();
 
-  let band = "";
-  if (age <= 5) band = "A 4-5";
-  else if (age <= 7) band = "B 6-7";
-  else band = "C 8-9";
+    const formData = await request.formData();
+    const kidName = formData.get("kid_name") as string;
+    const age = Number(formData.get("age"));
 
-  const supabase = await createServerSupabaseClient();
+    // ✅ Get parent auth user safely
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
-    .from("assessments")
-    .select("band, title, a_text")
-    .eq("band", band)
-    .single();
+    if (userError || !user) {
+      console.error("Auth error:", userError);
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
 
-  if (error || !data) {
-    redirect("/assessment?error=missing_passage");
+    // ✅ Calculate band from age
+    const band = age <= 5 ? "A" : age <= 7 ? "B" : "C";
+
+    // ✅ Generate kid email + password
+    const kidEmail = `${kidName.toLowerCase().replace(/\s+/g, "")}.${user.id}@kidsreadingquest.local`;
+    const kidPassword = `Kid${Math.floor(Math.random() * 90000 + 10000)}`;
+
+    // ✅ Call your RPC to create kid + progress
+    const { data: newKidId, error: rpcError } = await supabase.rpc(
+      "create_kid_parent_records",
+      {
+        p_parent_record_id: user.id,
+        p_name: kidName,
+        p_reading_level: band,
+        p_age: age,
+        p_email: kidEmail,
+        p_password: kidPassword,
+      }
+    );
+
+    if (rpcError) {
+      console.error("RPC ERROR:", rpcError);
+      return NextResponse.redirect(new URL("/assessment?error=rpc", request.url));
+    }
+
+    // ✅ Redirect back to AssessmentClient with kid_id + band
+    const redirectUrl = new URL(`/assessment?kid_id=${newKidId}&band=${band}`, request.url);
+    return NextResponse.redirect(redirectUrl);
+  } catch (err) {
+    console.error("Unhandled route error:", err);
+    return NextResponse.redirect(new URL("/assessment?error=server", request.url));
   }
-
-  redirect(
-    `/assessment?band=${encodeURIComponent(data.band)}&title=${encodeURIComponent(
-      data.title
-    )}&text=${encodeURIComponent(data.a_text)}&age=${age}`
-  );
 }

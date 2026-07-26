@@ -69,6 +69,23 @@ a {
   margin: 0 auto;
 }
 
+/* ⭐ NEW: Full-width card button */
+.full-card-button {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1rem;
+  margin-top: 10px;
+}
+
+/* ⭐ NEW: Ensure buttons fit inside card containers */
+.card-container .btn-primary {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 /* INPUTS */
 .input-field {
   width: 95%;
@@ -161,5 +178,3 @@ select.input-field {
   z-index: 10;
   pointer-events: none;
 }
-
-

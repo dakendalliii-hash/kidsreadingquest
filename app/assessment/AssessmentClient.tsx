@@ -6,27 +6,24 @@ import MicReader from "@/components/MicReader";
 
 export default function AssessmentClient() {
   const searchParams = useSearchParams();
+  const kidId = searchParams.get("kid_id") || "";
   const band = searchParams.get("band") || "";
-  const title = searchParams.get("title") || "";
-  const text = searchParams.get("text") || "";
-  const age = Number(searchParams.get("age")) || null;
+  const title = searchParams.get("title") || "Reading Fitness Test";
+  const text = searchParams.get("text") || "Read the passage out loud when ready.";
 
-  const hasPassage = band && text;
+  const hasKid = Boolean(kidId);
   const router = useRouter();
 
-  // ⭐ NEW: Safe redirect state
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
-  // ⭐ NEW: Hydration-safe navigation
   useEffect(() => {
     if (redirectUrl) {
       router.push(redirectUrl);
     }
   }, [redirectUrl, router]);
 
-  // ⭐ Screen flow state
   // Screens: "age", "before", "welcome", "instructions", "passage"
-  const [screen, setScreen] = useState(hasPassage ? "before" : "age");
+  const [screen, setScreen] = useState(hasKid ? "before" : "age");
 
   return (
     <div
@@ -40,7 +37,6 @@ export default function AssessmentClient() {
         paddingBottom: "80px",
       }}
     >
-      {/* ⭐ FIX: Add missing dark overlay layer */}
       <div
         style={{
           backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -51,7 +47,6 @@ export default function AssessmentClient() {
           padding: "40px",
         }}
       >
-        {/* ⭐ Existing white card preserved exactly */}
         <div
           style={{
             backgroundColor: "rgba(255,255,255,0.9)",
@@ -64,7 +59,7 @@ export default function AssessmentClient() {
           }}
         >
           {/* ========================================================= */}
-          {/* SCREEN 1 — AGE SELECTION                                 */}
+          {/* SCREEN 1 — NAME + AGE                                    */}
           {/* ========================================================= */}
           {screen === "age" && (
             <>
@@ -88,10 +83,25 @@ export default function AssessmentClient() {
                   textAlign: "center",
                 }}
               >
-                Enter your kid’s age to begin the assessment.
+                Enter your kid’s name and age to begin the assessment.
               </p>
 
               <form action="/assessment/start" method="POST">
+                <input
+                  type="text"
+                  name="kid_name"
+                  required
+                  placeholder="Kid’s name"
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #ccc",
+                    fontSize: "1rem",
+                    marginBottom: "20px",
+                  }}
+                />
+
                 <select
                   name="age"
                   required
@@ -130,7 +140,7 @@ export default function AssessmentClient() {
           {/* ========================================================= */}
           {/* SCREEN 2 — BEFORE YOU BEGIN                              */}
           {/* ========================================================= */}
-          {screen === "before" && hasPassage && (
+          {screen === "before" && hasKid && (
             <>
               <h1
                 style={{
@@ -154,14 +164,35 @@ export default function AssessmentClient() {
               >
                 This short test measures your kid’s reading fitness so we can
                 build the right training program.
-
-                {"\n\n"}Before continuing:
-                {"\n"}Make sure your microphone is working.
-                {"\n"}Your kid should sit close to the screen.
-                {"\n"}Background noise should be minimal.
-                {"\n"}If you have questions, visit the FAQ.
-                {"\n"}For microphone setup help, see Technical Instructions.
               </p>
+
+              <p
+                style={{
+                  color: "black",
+                  fontSize: "1rem",
+                  fontWeight: "bold",
+                  marginBottom: "10px",
+                }}
+              >
+                Before continuing:
+              </p>
+
+              <ul
+                style={{
+                  color: "black",
+                  fontSize: "1rem",
+                  marginBottom: "25px",
+                  paddingLeft: "20px",
+                  listStyleType: "disc",
+                  textAlign: "left",
+                }}
+              >
+                <li>Make sure your microphone is working.</li>
+                <li>Your kid should sit close to the screen.</li>
+                <li>Background noise should be minimal.</li>
+                <li>If you have questions, visit the FAQ.</li>
+                <li>For microphone setup help, see Technical Instructions.</li>
+              </ul>
 
               <button
                 onClick={() => setScreen("welcome")}
@@ -316,10 +347,11 @@ export default function AssessmentClient() {
 
               <MicReader
                 passageText={text}
-                kidId="assessment"
+                kidId={kidId}
                 language="english"
-                onSuccessRedirect={(url: string) => {
-                  setRedirectUrl(`${url}&age=${age}&band=${band}`);
+                onSuccessRedirect={() => {
+                  const nextUrl = `/kids/${kidId}/read-aloud?band=${band}&site_id=1&passage_index=1`;
+                  setRedirectUrl(nextUrl);
                 }}
               />
 
