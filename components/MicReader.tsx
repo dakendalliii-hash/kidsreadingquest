@@ -3,15 +3,19 @@
 import { useState, useEffect, useRef } from "react";
 
 export default function MicReader({
-  passageText,
+  passageEnglish,
+  passageLocalized,
   kidId,
   language,
-  onSuccessRedirect,
+  band,
+  onComplete,
 }: {
-  passageText: string;
+  passageEnglish: string;
+  passageLocalized: string;
   kidId: string;
-  language: string;
-  onSuccessRedirect: (url: string) => void;
+  language: "en" | "hindi";
+  band: string;
+  onComplete: (results: any) => void;
 }) {
   const [isListening, setIsListening] = useState(false);
   const [showPrivacyBanner, setShowPrivacyBanner] = useState(false);
@@ -45,11 +49,9 @@ export default function MicReader({
         : "Reading accuracy too low.",
   };
 
-  // ---------------------------------------------------------
-  // ⭐ Strict Mode Guard — prevents double initialization
-  // ---------------------------------------------------------
+  // ⭐ Strict Mode Guard
   useEffect(() => {
-    if (recognitionRef.current) return; // <— THIS FIXES DOUBLE RENDER
+    if (recognitionRef.current) return;
 
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
@@ -65,19 +67,17 @@ export default function MicReader({
     recognition.interimResults = false;
     recognition.lang = language === "hindi" ? "hi-IN" : "en-US";
 
-let graceTimer: any = null;
+    let graceTimer: any = null;
 
-recognition.onresult = async (event: any) => {
-  const transcript = event.results[0][0].transcript;
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
 
-  // Clear any previous timer
-  if (graceTimer) clearTimeout(graceTimer);
+      if (graceTimer) clearTimeout(graceTimer);
 
-  // ⭐ Wait 2.5 seconds before finalizing
-  graceTimer = setTimeout(() => {
-    handleTranscript(transcript);
-  }, 2500);
-};
+      graceTimer = setTimeout(() => {
+        handleTranscript(transcript);
+      }, 2500);
+    };
 
     recognition.onerror = (event: any) => {
       setErrorMessage("Microphone error: " + event.error);
@@ -94,18 +94,15 @@ recognition.onresult = async (event: any) => {
     setTimeout(() => setShowPrivacyBanner(false), 4000);
 
     try {
-      const postUrl =
-        kidId === "assessment"
-          ? "/assessment/read-aloud"
-          : `/kids/${kidId}/read-aloud`;
-
-      const res = await fetch(postUrl, {
+      const res = await fetch(`/kids/${kidId}/read-aloud/api`, {
         method: "POST",
         body: JSON.stringify({
           transcript,
-          passageText,
-          kidId,
+          passageEnglish,
+          passageLocalized,
           language,
+          band,
+          kidId,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -113,23 +110,7 @@ recognition.onresult = async (event: any) => {
       });
 
       const data = await res.json();
-
-      if (kidId === "assessment") {
-        const url = `/assessment/results?wpm=${data.wpm ?? 0}&accuracy=${
-          data.accuracy ?? 0
-        }&errors=${data.errors ?? 0}`;
-        onSuccessRedirect(url);
-        return;
-      }
-
-      if (data.success && data.celebrate) {
-        const url = `/kids/${kidId}?celebrate=1&bandCompleted=${
-          data.bandCompleted ? "1" : "0"
-        }&lang=${language}&t=${Date.now()}`;
-        onSuccessRedirect(url);
-      } else {
-        setErrorMessage(data.message || ui.lowAccuracy);
-      }
+      onComplete(data);
     } catch (err) {
       console.error("MicReader fetch error:", err);
       setErrorMessage(ui.serverError);

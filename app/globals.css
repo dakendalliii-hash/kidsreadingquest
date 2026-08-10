@@ -21,6 +21,33 @@ a {
   text-decoration: none !important;
 }
 
+/* ⭐ FIX: Ensure background sections stay behind cards */
+.signup-section,
+.hero-section,
+.background-wrapper {
+  position: relative;
+  z-index: 0;
+}
+
+/* ⭐ FIX: Ensure all cards render ABOVE background images */
+.page-container {
+  position: relative;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 40px;
+  width: 95%;
+  max-width: 700px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  margin: 60px auto 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(6px);
+}
+
 /* TEXT */
 .section-header {
   color: black;
@@ -118,21 +145,6 @@ select.input-field {
 }
 
 /* PAGE CONTAINERS */
-.page-container {
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  padding: 40px;
-  width: 95%;
-  max-width: 700px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  margin: 60px auto 0 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
 .form-container {
   width: auto;
   display: flex;
@@ -178,3 +190,52 @@ select.input-field {
   z-index: 10;
   pointer-events: none;
 }
+
+/* ⭐ Override passage text color inside cards */
+.page-container p {
+  color: black !important;
+}
+
+/* ✅ Restrict green buttons to reading/assessment pages */
+.page-container.reading-mode .btn-primary,
+.page-container.reading-mode button {
+  background-color: #16a34a !important; /* Tailwind green‑600 */
+  color: white !important;
+  border: none;
+}
+.page-container.reading-mode .btn-primary:hover,
+.page-container.reading-mode button:hover {
+  background-color: #15803d !important; /* Tailwind green‑700 */
+}
+
+/* ⭐ Match site font size and color */
+.page-container {
+  font-size: 1rem !important; /* same as base site text */
+  color: black !important;
+}
+
+/* ⭐ Ensure Passage 1 heading is black */
+.page-container h2 {
+  color: black !important;
+}
+
+.btn-green { background-color: #16a34a !important; /* Tailwind green-600 */
+  color: white !important;
+  border: none;
+  border-radius: 6px !important; /* match other site buttons */
+  font-size: 1rem !important; /* same font size as rest of site */
+  font-weight: bold;
+  padding: 12px 24px;
+  cursor: pointer;
+}
+
+.btn-blue  { background-color: #3b4a63;
+  color: white !important;
+  border: none;
+  border-radius: 6px !important; /* match other site buttons */
+  font-size: 1rem !important; /* same font size as rest of site */
+  font-weight: bold;
+  padding: 12px 24px;
+  cursor: pointer;
+}
+

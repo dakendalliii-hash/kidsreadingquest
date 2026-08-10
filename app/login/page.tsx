@@ -1,92 +1,20 @@
-export const runtime = "nodejs";
+"use client";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import FormContainer from "@/components/FormContainer";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useFormStatus } from "react-dom";
+import { loginAction } from "./actions";
 
-const MAX_ATTEMPTS = 5;
-const COOLDOWN_MINUTES = 10;
+export default function LoginPage() {
+  const params = useSearchParams();
 
-async function handleLogin(formData: FormData) {
-  "use server";
+  const errorMessage = params.get("error") || "";
+  const attemptsParam = params.get("attempts") || "0";
 
-  const supabase = await createServerSupabaseClient();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const cookieStore = await cookies();
-
-  const attemptCookie = cookieStore.get("login_attempts");
-  const cooldownCookie = cookieStore.get("login_cooldown");
-
-  const attempts = attemptCookie ? parseInt(attemptCookie.value, 10) : 0;
-  const cooldownUntil = cooldownCookie ? parseInt(cooldownCookie.value, 10) : 0;
-  const now = Date.now();
-
-  if (cooldownUntil && now < cooldownUntil) {
-    throw redirect(
-      `/login?error=${encodeURIComponent("Let's try again together!")}&attempts=${attempts}`
-    );
-  }
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    const newAttempts = attempts + 1;
-
-    cookieStore.set("login_attempts", String(newAttempts), {
-      httpOnly: true,
-      path: "/",
-      maxAge: 60 * 60,
-    });
-
-    if (newAttempts >= MAX_ATTEMPTS) {
-      const cooldownUntilTimestamp =
-        now + COOLDOWN_MINUTES * 60 * 1000;
-
-      cookieStore.set("login_cooldown", String(cooldownUntilTimestamp), {
-        httpOnly: true,
-        path: "/",
-        maxAge: COOLDOWN_MINUTES * 60,
-      });
-
-      throw redirect(
-        `/login?error=${encodeURIComponent("Let's try again together!")}&attempts=${newAttempts}`
-      );
-    }
-
-    throw redirect(
-      `/login?error=${encodeURIComponent("Invalid Password!")}&attempts=${newAttempts}`
-    );
-  }
-
-  cookieStore.set("login_attempts", "0", {
-    httpOnly: true,
-    path: "/",
-    maxAge: 60 * 60,
-  });
-
-  cookieStore.set("login_cooldown", "0", {
-    httpOnly: true,
-    path: "/",
-    maxAge: 60 * 60,
-  });
-
-  redirect("/parent");
-}
-
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
-  const params = await searchParams;
-  const errorMessage = params?.error;
-  const attempts = params?.attempts;
+  const { pending } = useFormStatus();
 
   return (
     <div
@@ -100,172 +28,169 @@ export default async function LoginPage({
         padding: "80px 40px 40px 40px",
       }}
     >
-      <FormContainer>
-        <div
+      <div
+        style={{
+          backgroundColor: "rgba(255,255,255,0.9)",
+          borderRadius: "16px",
+          padding: "40px",
+          width: "85%",
+          maxWidth: "500px",
+          margin: "0 auto",
+          textAlign: "center",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+        }}
+      >
+        <h1
           style={{
-            backgroundColor: "rgba(255,255,255,0.9)",
-            borderRadius: "16px",
-            padding: "40px",
-            width: "85%",
-            maxWidth: "500px",
-            margin: "0 auto",
-            textAlign: "center",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            color: "black",
+            fontSize: "2rem",
+            fontWeight: "bold",
+            marginBottom: "10px",
           }}
         >
-          <h1
-            style={{
-              color: "black",
-              fontSize: "2rem",
-              fontWeight: "bold",
-              marginBottom: "10px",
-            }}
-          >
-            Login
-          </h1>
+          Login
+        </h1>
 
-          <form action={handleLogin}>
-            <div style={{ marginBottom: "20px", textAlign: "left" }}>
-              <label
-                htmlFor="email"
-                style={{
-                  color: "black",
-                  fontWeight: "bold",
-                  display: "block",
-                  marginBottom: "5px",
-                }}
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                required
-                placeholder="name@email_provider.com"
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "8px",
-                  border: "1px solid #ccc",
-                  fontSize: "1rem",
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: "20px", textAlign: "left" }}>
-              <label
-                htmlFor="password"
-                style={{
-                  color: "black",
-                  fontWeight: "bold",
-                  display: "block",
-                  marginBottom: "5px",
-                }}
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                name="password"
-                required
-                placeholder="••••••••"
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "8px",
-                  border: "1px solid #ccc",
-                  fontSize: "1rem",
-                }}
-              />
-
-              {errorMessage && (
-                <p
-                  style={{
-                    color: "red",
-                    fontWeight: "bold",
-                    marginTop: "8px",
-                  }}
-                >
-                  {errorMessage}
-                </p>
-              )}
-
-              {attempts && (
-                <p
-                  style={{
-                    color: "black",
-                    fontWeight: "bold",
-                    marginTop: "4px",
-                  }}
-                >
-                  Attempts: {attempts} / {MAX_ATTEMPTS}
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="btn-primary form-single-button"
+        <form action={loginAction}>
+          <div style={{ marginBottom: "20px", textAlign: "left" }}>
+            <label
+              htmlFor="email"
               style={{
-                width: "100%",
+                color: "black",
                 fontWeight: "bold",
-                fontSize: "1rem",
+                display: "block",
+                marginBottom: "5px",
               }}
             >
-              Login
-            </button>
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              placeholder="name@email_provider.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                fontSize: "1rem",
+              }}
+            />
+          </div>
 
-            {/* ========================================================= */}
-            {/* RESTORED LINKS — Forgot Password + Sign Up                */}
-            {/* ========================================================= */}
-            <div style={{ marginTop: "12px" }}>
-              <a
-                href="/forgot-password"
-                style={{
-                  color: "#2c3e50",
-                  fontWeight: "bold",
-                  textDecoration: "underline",
-                  fontSize: "0.95rem",
-                }}
-              >
-                Forgot Password?
-              </a>
+          <div style={{ marginBottom: "20px", textAlign: "left" }}>
+            <label
+              htmlFor="password"
+              style={{
+                color: "black",
+                fontWeight: "bold",
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                fontSize: "1rem",
+              }}
+            />
 
-              {/* ⭐ NEW TEXT INSERTED BELOW FORGOT PASSWORD */}
+            {errorMessage && (
               <p
                 style={{
+                  color: "red",
+                  fontWeight: "bold",
                   marginTop: "8px",
-                  color: "#2c3e50",
-                  fontSize: "0.9rem",
-                  lineHeight: "1.4",
-                  fontWeight: "bold",
                 }}
               >
-                No problem. Enter your email and we’ll send you a secure reset
-                link so you can get back in. When the email arrives, click the
-                link and follow the steps to choose a new password. If you don’t
-                see the email, check your spam folder.
+                {errorMessage}
               </p>
-            </div>
+            )}
 
-            <div style={{ marginTop: "8px" }}>
-              <a
-                href="/signup"
+            {attemptsParam && (
+              <p
                 style={{
-                  color: "#2c3e50",
+                  color: "black",
                   fontWeight: "bold",
-                  textDecoration: "underline",
-                  fontSize: "0.95rem",
+                  marginTop: "4px",
                 }}
               >
-                Sign Up
-              </a>
-            </div>
-          </form>
-        </div>
-      </FormContainer>
+                Attempts: {attemptsParam} / 5
+              </p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="btn-primary form-single-button"
+            style={{
+              width: "100%",
+              fontWeight: "bold",
+              fontSize: "1rem",
+              opacity: pending ? 0.6 : 1,
+            }}
+          >
+            {pending ? "Logging in..." : "Login"}
+          </button>
+
+          <div style={{ marginTop: "12px" }}>
+            <a
+              href="/forgot-password"
+              style={{
+                color: "#2c3e50",
+                fontWeight: "bold",
+                textDecoration: "underline",
+                fontSize: "0.95rem",
+              }}
+            >
+              Forgot Password?
+            </a>
+
+            <p
+              style={{
+                marginTop: "8px",
+                color: "#2c3e50",
+                fontSize: "0.9rem",
+                lineHeight: "1.4",
+                fontWeight: "bold",
+              }}
+            >
+              No problem. Enter your email and we’ll send you a secure reset link so you can get back in.
+            </p>
+          </div>
+
+          <div style={{ marginTop: "8px" }}>
+            <a
+              href="/signup"
+              style={{
+                color: "#2c3e50",
+                fontWeight: "bold",
+                textDecoration: "underline",
+                fontSize: "0.95rem",
+              }}
+            >
+              Sign Up
+            </a>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

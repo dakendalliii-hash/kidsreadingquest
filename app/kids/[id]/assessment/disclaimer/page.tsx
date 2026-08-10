@@ -1,14 +1,14 @@
-// kidsreadingquest/app/(public)/choose-path/page.tsx
+// kidsreadingquest/app/assessment/disclaimer/page.tsx
 export const runtime = "nodejs";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import ChoosePathClient from "./ChoosePathClient";
+import DisclaimerClient from "./DisclaimerClient";
 
 // =========================================================
 // SSR PAGE — NO DATABASE WRITES
 // =========================================================
-export default async function ChoosePathPage() {
+export default async function DisclaimerPage() {
   const supabase = await createServerSupabaseClient();
 
   // 1️⃣ Auth check
@@ -23,7 +23,7 @@ export default async function ChoosePathPage() {
     .eq("auth_id", user.id)
     .single();
 
-  if (!parentRecord) redirect("/unauthorized");
+  if (!parentRecord) redirect("/authorized");
 
   // 3️⃣ Ensure at least one kid exists
   const { data: kids } = await supabase
@@ -35,5 +35,5 @@ export default async function ChoosePathPage() {
     redirect("/parent/manage-kids/add");
   }
 
-  return <ChoosePathClient />;
+  return <DisclaimerClient />;
 }

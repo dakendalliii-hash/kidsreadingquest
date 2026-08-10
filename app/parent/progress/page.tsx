@@ -44,7 +44,7 @@ export default async function ParentProgressReportPage() {
     .eq("auth_id", user.id)
     .single();
 
-  if (!parentRecord) redirect("/not-authorized");
+  if (!parentRecord) redirect("/unauthorized");
 
   // ------------------------------
   // Fetch progress for all kids

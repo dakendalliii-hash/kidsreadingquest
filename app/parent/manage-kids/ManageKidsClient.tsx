@@ -1,14 +1,13 @@
 // =========================================================
 // FILE: ManageKidsClient.tsx
-// PURPOSE: Manage Kids with Name + Age (Level auto-assigned)
+// PURPOSE: Manage Kids with Unified Update (Name + Band)
 // =========================================================
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
-import ActionButton from "@/components/ActionButton";
 
 type Kid = {
   id: string;
@@ -20,9 +19,9 @@ type Kid = {
 type ManageKidsClientProps = {
   kids: Kid[];
   parentId: string;
-  addKid: (formData: FormData) => void;
-  deleteKid: (formData: FormData) => void;
-  updateKid: (formData: FormData) => void;
+  addKid: (formData: FormData) => Promise<string>;
+  deleteKid: (formData: FormData) => Promise<void>;
+  updateKid: (formData: FormData) => Promise<void>;
 };
 
 export default function ManageKidsClient({
@@ -35,36 +34,34 @@ export default function ManageKidsClient({
   const router = useRouter();
 
   const [localKids, setLocalKids] = useState<Kid[]>(kids);
-
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
 
   // =========================================================
-  // UPDATE KID (with confirmation)
+  // Rebuild Kid objects on every render (initial load)
+  // =========================================================
+  useEffect(() => {
+    const refreshKids = async () => {
+      const res = await fetch(`/api/kids?parentId=${parentId}`);
+      const data = await res.json();
+      setLocalKids(data || []);
+    };
+
+    refreshKids();
+  }, [parentId]);
+
+  // =========================================================
+  // Unified Local Update (Name + Band)
   // =========================================================
   const handleLocalUpdate = async (formData: FormData) => {
-    const kidId = formData.get("kidId") as string;
-    const newName = formData.get("name") as string;
-    const newLevel = formData.get("level") as string;
-
     const confirmed = window.confirm("Are you sure you want to make changes?");
     if (!confirmed) return;
 
-    // Update UI instantly
-    setLocalKids((prev) =>
-      prev.map((k) =>
-        k.id === kidId
-          ? {
-              ...k,
-              name: newName,
-              reading_level: newLevel,
-            }
-          : k
-      )
-    );
-
     await updateKid(formData);
-    router.refresh();
+
+    const res = await fetch(`/api/kids?parentId=${parentId}`);
+    const refreshedKids = await res.json();
+    setLocalKids(refreshedKids || []);
   };
 
   return (
@@ -89,9 +86,8 @@ export default function ManageKidsClient({
               const newName = formData.get("name") as string;
               const newAge = Number(formData.get("age"));
 
-              await addKid(formData);
+              const newKidId = await addKid(formData);
 
-              // Compute band locally for UI
               let band = "";
               if (newAge >= 4 && newAge <= 5) band = "A 4-5";
               else if (newAge >= 6 && newAge <= 7) band = "B 6-7";
@@ -100,7 +96,7 @@ export default function ManageKidsClient({
               setLocalKids((prev) => [
                 ...prev,
                 {
-                  id: crypto.randomUUID(),
+                  id: newKidId,
                   name: newName,
                   age: newAge,
                   reading_level: band,
@@ -110,7 +106,6 @@ export default function ManageKidsClient({
               setName("");
               setAge("");
 
-              router.refresh();
             }}
           >
             <input type="hidden" name="parentId" value={parentId} />
@@ -125,7 +120,6 @@ export default function ManageKidsClient({
               className="input-field"
             />
 
-            {/* AGE DROPDOWN */}
             <select
               name="age"
               required
@@ -141,7 +135,9 @@ export default function ManageKidsClient({
               ))}
             </select>
 
-            <ActionButton label="Add Kid" />
+            <button type="submit" className="btn-blue full-card-button">
+              Add Kid
+            </button>
           </form>
         </div>
       </FormContainer>
@@ -176,83 +172,137 @@ export default function ManageKidsClient({
                 borderRadius: "12px",
                 border: "1px solid #ccc",
                 padding: "16px",
-                overflowX: "auto",
               }}
             >
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={headerStyle}>Name</th>
-                    <th style={headerStyle}>Level</th>
-                    <th style={headerCenter}>Update</th>
-                    <th style={headerCenter}>Delete</th>
-                  </tr>
-                </thead>
+              {/* Header */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                  fontWeight: "bold",
+                  borderBottom: "1px solid #ccc",
+                  paddingBottom: "8px",
+                  marginBottom: "8px",
+                  textAlign: "center",
+                }}
+              >
+                <div>Name</div>
+                <div>Band</div>
+                <div>Update</div>
+                <div>Delete</div>
+              </div>
 
-                <tbody>
-                  {localKids.map((kid) => (
-                    <tr key={kid.id}>
-                      <td style={cellStyle}>{kid.name}</td>
-                      <td style={cellStyle}>{kid.reading_level ?? "N/A"}</td>
+              {/* Rows */}
+              {localKids.map((kid) => (
+                <div
+                  key={kid.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                    alignItems: "center",
+                    borderBottom: "1px solid #eee",
+                    padding: "8px 0",
+                    gap: "12px",
+                  }}
+                >
+                  {/* Unified Update Form */}
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault(); // ⛔ prevent navigation
+                      const formData = new FormData(e.currentTarget);
+                      await handleLocalUpdate(formData);
+                    }}
+                    style={{
+                      display: "contents",
+                    }}
+                  >
+                    <input type="hidden" name="kidId" value={kid.id} />
 
-                      <td style={cellCenter}>
-                        <form action={handleLocalUpdate} className="kid-update-form">
-                          <input type="hidden" name="kidId" value={kid.id} />
+                    {/* Name */}
+                    <div style={{ textAlign: "center" }}>
+                      <input
+                        type="text"
+                        name="name"
+                        defaultValue={kid.name}
+                        className="input-field"
+                        style={{
+                          width: "90%",
+                          padding: "6px",
+                          borderRadius: "6px",
+                          border: "1px solid #ccc",
+                        }}
+                      />
+                    </div>
 
-                          <div className="kid-update-row">
-                            <input
-                              type="text"
-                              name="name"
-                              defaultValue={kid.name}
-                              className="input-field"
-                            />
+                    {/* Band */}
+                    <div style={{ textAlign: "center" }}>
+                      <select
+                        name="level"
+                        defaultValue={kid.reading_level ?? ""}
+                        className="input-field"
+                        style={{
+                          width: "90%",
+                          padding: "6px",
+                          borderRadius: "6px",
+                          border: "1px solid #ccc",
+                        }}
+                      >
+                        <option value="">Select band</option>
+                        <option value="A 4-5">A 4-5</option>
+                        <option value="B 6-7">B 6-7</option>
+                        <option value="C 8-9">C 8-9</option>
+                      </select>
+                    </div>
 
-                            {/* LEVEL DROPDOWN REMAINS HERE */}
-                            <select
-                              name="level"
-                              defaultValue={kid.reading_level ?? ""}
-                              className="input-field"
-                            >
-                              <option value="">Select level</option>
-                              <option value="A 4-5">A 4-5</option>
-                              <option value="B 6-7">B 6-7</option>
-                              <option value="C 8-9">C 8-9</option>
-                            </select>
+                    {/* Update */}
+                    <div style={{ textAlign: "center" }}>
+                      <button
+                        type="submit"
+                        className="btn-blue full-card-button"
+                        style={{
+                          width: "90%",
+                          padding: "8px 0",
+                        }}
+                      >
+                        Update
+                      </button>
+                    </div>
+                  </form>
 
-                            <ActionButton label="Update" />
-                          </div>
-                        </form>
-                      </td>
+                  {/* Delete */}
+                  <div style={{ textAlign: "center" }}>
+                    <form
+                      action={async (formData) => {
+                        const kidId = formData.get("kidId") as string;
 
-                      <td style={cellCenter}>
-                        <form
-                          action={async (formData) => {
-                            const kidId = formData.get("kidId") as string;
+                        const confirmed = window.confirm(
+                          `Are you sure you want to delete ${kid.name}? This will remove all progress for this kid.`
+                        );
 
-                            const confirmed = window.confirm(
-                              `Are you sure you want to delete ${kid.name}? This will remove all progress for this kid.`
-                            );
+                        if (!confirmed) return;
 
-                            if (!confirmed) return;
+                        setLocalKids((prev) =>
+                          prev.filter((k) => k.id !== kidId)
+                        );
 
-                            setLocalKids((prev) =>
-                              prev.filter((k) => k.id !== kidId)
-                            );
-
-                            await deleteKid(formData);
-                            router.refresh();
-                          }}
-                        >
-                          <input type="hidden" name="kidId" value={kid.id} />
-                          <button type="submit" className="btn-danger">
-                            Delete
-                          </button>
-                        </form>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        await deleteKid(formData);
+                      }}
+                    >
+                      <input type="hidden" name="kidId" value={kid.id} />
+                      <button
+                        type="submit"
+                        className="btn-danger"
+                        style={{
+                          width: "90%",
+                          padding: "8px 0",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -262,26 +312,3 @@ export default function ManageKidsClient({
     </div>
   );
 }
-
-const headerStyle: React.CSSProperties = {
-  textAlign: "left",
-  padding: "8px",
-  borderBottom: "1px solid #ccc",
-  color: "black",
-};
-
-const headerCenter: React.CSSProperties = {
-  ...headerStyle,
-  textAlign: "center",
-};
-
-const cellStyle: React.CSSProperties = {
-  padding: "8px",
-  borderBottom: "1px solid #eee",
-  color: "black",
-};
-
-const cellCenter: React.CSSProperties = {
-  ...cellStyle,
-  textAlign: "center",
-};

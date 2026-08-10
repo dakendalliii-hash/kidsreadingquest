@@ -1,14 +1,14 @@
-// kidsreadingquest/app/(public)/choose-path/page.tsx
+// kidsreadingquest/app/assessment/processing/page.tsx
 export const runtime = "nodejs";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import ChoosePathClient from "./ChoosePathClient";
+import ProcessingClient from "./ProcessingClient";
 
 // =========================================================
 // SSR PAGE — NO DATABASE WRITES
 // =========================================================
-export default async function ChoosePathPage() {
+export default async function AssessmentProcessingPage() {
   const supabase = await createServerSupabaseClient();
 
   // 1️⃣ Auth check
@@ -35,5 +35,5 @@ export default async function ChoosePathPage() {
     redirect("/parent/manage-kids/add");
   }
 
-  return <ChoosePathClient />;
+  return <ProcessingClient />;
 }

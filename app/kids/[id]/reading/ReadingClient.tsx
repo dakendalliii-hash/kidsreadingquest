@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import AuthCard from "@/components/AuthCard";
 
 export default function ReadingClient({
   kidId,
@@ -17,32 +16,59 @@ export default function ReadingClient({
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center w-full">
-      <h1 className="text-2xl font-bold mb-6">Reading Gym Workout</h1>
+    <div
+      style={{
+        padding: "40px",
+        maxWidth: "800px",
+        margin: "0 auto",
+        color: "black",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: "2rem",
+          fontWeight: "bold",
+          marginBottom: "20px",
+        }}
+      >
+        Reading Gym Workout — Band {band.replace(" ", "")}
+      </h1>
 
-      <div className="w-full max-w-3xl">
-        <AuthCard>
-          <h2 className="text-xl font-semibold mb-4">
-            Workout Passage — Band {band.replace(" ", "")}
-          </h2>
+      <h2 style={{ fontSize: "1.2rem", marginBottom: "10px" }}>
+        Workout Passage
+      </h2>
 
-          <p className="mb-4">
-            {kidName} will read the following passage aloud. When finished,
-            continue to the next step.
-          </p>
+      <p
+        style={{
+          backgroundColor: "#f9f9f9",
+          padding: "20px",
+          borderRadius: "8px",
+          marginBottom: "30px",
+          lineHeight: "1.6",
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {passage}
+      </p>
 
-          <p className="mb-6 whitespace-pre-line">
-            {passage}
-          </p>
-
-          <button
-            onClick={() => router.push(`/kids/${kidId}/read-aloud`)}
-            className="px-4 py-2 rounded bg-blue-600 text-white"
-          >
-            Begin Read-Aloud
-          </button>
-        </AuthCard>
-      </div>
+      <button
+        onClick={() => router.push(`/kids/${kidId}/read-aloud`)}
+        style={{
+          width: "95%",
+          backgroundColor: "#4CAF50",
+          color: "white",
+          padding: "12px",
+          borderRadius: "8px",
+          border: "none",
+          cursor: "pointer",
+          fontWeight: "bold",
+          fontSize: "1rem",
+          whiteSpace: "nowrap",
+          marginBottom: "20px",
+        }}
+      >
+        Begin Read-Aloud
+      </button>
     </div>
   );
 }

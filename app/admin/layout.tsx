@@ -2,40 +2,26 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { ReactNode } from "react";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const cookieStore = await cookies();
+  const supabase = await createServerSupabaseClient();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set() {},
-        remove() {},
-      },
-    }
-  );
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) redirect("/login");
+  if (error || !user) redirect("/login");
 
-  // 🔥 Use roles table (same as middleware)
   const { data: roleRecord } = await supabase
     .from("roles")
     .select("role")
-    .eq("user_id", data.user.id)
+    .eq("user_id", user.id)
     .single();
 
-  const role = roleRecord?.role;
-
-  if (role !== "admin") redirect("/unauthorized");
+  if (roleRecord?.role !== "admin") redirect("/unauthorized");
 
   return <div>{children}</div>;
 }

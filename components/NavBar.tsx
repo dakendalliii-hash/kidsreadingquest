@@ -1,29 +1,17 @@
 // =========================================================
-// NAVBAR — UNIFIED BUTTON WIDTH (NO COLOR OR STYLE CHANGES)
+// NAVBAR — SSR-SAFE VERSION (NO CLIENT HOOKS)
 // =========================================================
 
-"use client";
-
-import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import React from "react";
+import BackButton from "./BackButton";
 
-export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
-  const pathname = usePathname();
-  const router = useRouter();
-
-  const showBackButton =
-    pathname.startsWith("/parent") ||
-    pathname.startsWith("/kids/");
-
-  const handleBack = () => {
-    if (pathname.startsWith("/kids/")) {
-      router.push("/parent");
-    } else {
-      router.back();
-    }
-  };
-
+export default function NavBar({
+  isLoggedIn,
+  showDashboardButton,
+}: {
+  isLoggedIn: boolean;
+  showDashboardButton: boolean;
+}) {
   return (
     <nav
       style={{
@@ -51,8 +39,28 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {/* ⭐ Dashboard button appears ONLY on /parent/* subpages */}
+        {isLoggedIn && showDashboardButton && (
+          <Link
+            href="/parent"
+            style={{
+              backgroundColor: "#2563eb", // btn-blue
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              padding: "6px 14px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "0.95rem",
+              minWidth: "110px",
+              textAlign: "center",
+              textDecoration: "none",
+            }}
+          >
+            Dashboard
+          </Link>
+        )}
 
-        {/* ⭐ SIGN UP — FIRST */}
         <Link
           href="/signup"
           style={{
@@ -72,27 +80,8 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
           Sign Up
         </Link>
 
-        {/* ⭐ READING FITNESS TEST — SECOND */}
-        <Link
-          href="/assessment"
-          style={{
-            backgroundColor: "#f5f6fa",
-            color: "#2c3e50",
-            border: "none",
-            borderRadius: "6px",
-            padding: "6px 14px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.95rem",
-            minWidth: "90px",
-            textAlign: "center",
-            textDecoration: "none",
-          }}
-        >
-          Reading Fitness Test
-        </Link>
+        {/* ❌ Reading Fitness Test removed */}
 
-        {/* ⭐ LOGIN — THIRD */}
         <Link
           href="/login"
           style={{
@@ -112,7 +101,6 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
           Login
         </Link>
 
-        {/* ⭐ FAQ — FOURTH */}
         <Link
           href="/faq"
           style={{
@@ -132,96 +120,27 @@ export default function NavBar({ isLoggedIn }: { isLoggedIn: boolean }) {
           FAQ
         </Link>
 
-        {/* ⭐ CONTACT US — FIFTH (only on home page, same as before) */}
-        {pathname === "/" && (
-          <Link
-            href="/contact"
-            style={{
-              backgroundColor: "#f5f6fa",
-              color: "#2c3e50",
-              border: "none",
-              borderRadius: "6px",
-              padding: "6px 14px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-              minWidth: "90px",
-              textAlign: "center",
-              textDecoration: "none",
-            }}
-          >
-            Contact Us
-          </Link>
-        )}
+        <Link
+          href="/contact"
+          style={{
+            backgroundColor: "#f5f6fa",
+            color: "#2c3e50",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 14px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.95rem",
+            minWidth: "90px",
+            textAlign: "center",
+            textDecoration: "none",
+          }}
+        >
+          Contact Us
+        </Link>
 
-        {/* ⭐ BACK / LOGGED-IN BUTTONS — unchanged */}
-        {pathname !== "/login" &&
-          pathname !== "/" &&
-          pathname !== "/forgot-password" &&
-          pathname !== "/update-password" && (
-            <>
-              {showBackButton && (
-                <button
-                  onClick={handleBack}
-                  style={{
-                    backgroundColor: "#f5f6fa",
-                    color: "#2c3e50",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 14px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    fontSize: "0.95rem",
-                    minWidth: "90px",
-                  }}
-                >
-                  Back
-                </button>
-              )}
-
-              {isLoggedIn && (
-                <Link
-                  href="/help/microphone"
-                  style={{
-                    backgroundColor: "#f5f6fa",
-                    color: "#2c3e50",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 14px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    fontSize: "0.95rem",
-                    minWidth: "90px",
-                    textAlign: "center",
-                    textDecoration: "none",
-                  }}
-                >
-                  Technical Instructions
-                </Link>
-              )}
-
-              {isLoggedIn && (
-                <form action="/logout" method="post">
-                  <button
-                    type="submit"
-                    style={{
-                      backgroundColor: "#f5f6fa",
-                      color: "#2c3e50",
-                      border: "none",
-                      borderRadius: "6px",
-                      padding: "6px 14px",
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                      fontSize: "0.95rem",
-                      minWidth: "90px",
-                    }}
-                  >
-                    Logout
-                  </button>
-                </form>
-              )}
-            </>
-          )}
+        {/* ⭐ BACK BUTTON — furthest right */}
+        <BackButton />
       </div>
     </nav>
   );

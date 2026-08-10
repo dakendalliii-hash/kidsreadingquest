@@ -35,9 +35,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en">
       <body style={{ margin: 0, padding: 0 }}>
-
-        {/* NavBar always shown — NavBar itself handles reset pages */}
-        <NavBarWrapper />
+        {/* ⭐ NavBarWrapper handles auth; NavBar handles Back button */}
+        <div>
+          <NavBarWrapper />
+        </div>
 
         <div
           style={{
@@ -77,14 +78,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "bold" }}>
               Welcome to Kids Read Quest
             </h1>
-
-            {/* Only show this line on the login page */}
-            {typeof window !== "undefined" &&
-              window.location.pathname === "/login" && (
-                <p style={{ margin: 0, fontSize: "1.2rem" }}>
-                  Please log in or sign up to continue.
-                </p>
-              )}
           </div>
 
           <div style={{ position: "relative", zIndex: 1, color: "white" }}>

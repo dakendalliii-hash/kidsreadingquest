@@ -1,48 +1,29 @@
-// =========================================================
-// SECTION 1 — Imports
-// =========================================================
-
 export const runtime = "nodejs";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-// =========================================================
-// SECTION 2 — Page Component
-// =========================================================
 export default async function ParentDashboardPage() {
   const supabase = await createServerSupabaseClient();
 
-  // ------------------------------
-  // Auth check
-  // ------------------------------
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
   if (!user) redirect("/login");
 
-  // ------------------------------
-  // Get parent record
-  // ------------------------------
   const { data: parentRecord } = await supabase
     .from("parents")
     .select("id")
     .eq("auth_id", user.id)
     .single();
 
-  if (!parentRecord) redirect("/not-authorized");
+  if (!parentRecord) redirect("/unauthorized");
 
-  // ------------------------------
-  // Fetch kids (UPDATED)
-  // ------------------------------
   const { data: kids } = await supabase
     .from("kids")
-    .select("id, name, recommended_band")   // ← ADDED recommended_band
+    .select("id, name, recommended_band")
     .eq("parent_id", parentRecord.id)
     .order("name", { ascending: true });
 
-  // =========================================================
-  // SECTION 3 — Render Page
-  // =========================================================
   return (
     <div
       style={{
@@ -67,49 +48,42 @@ export default async function ParentDashboardPage() {
           boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
         }}
       >
-        {/* ========================================================= */}
-        {/* SECTION 4 — Header */}
-        {/* ========================================================= */}
-        <h2 style={{ color: "black", marginBottom: "20px" }}>
-          Parent Dashboard
-        </h2>
-
+        <h2 style={{ color: "black", marginBottom: "20px" }}>Parent Dashboard</h2>
         <p style={{ color: "black", fontSize: "1.1rem", marginBottom: "20px" }}>
           Select a kid:
         </p>
 
-        {/* ========================================================= */}
-        {/* SECTION 5 — Kids List */}
-        {/* ========================================================= */}
         {kids && kids.length > 0 ? (
           <div style={{ marginBottom: "30px" }}>
             {kids.map((kid) => (
               <div key={kid.id} style={{ marginBottom: "20px" }}>
-                {/* NEW: Recommended Band Display */}
                 {kid.recommended_band && (
                   <p style={{ color: "black", marginBottom: "10px" }}>
                     Recommended Band: <strong>{kid.recommended_band}</strong>
                   </p>
                 )}
 
-                <form action={`/kids/${kid.id}`} method="get">
-                  <button
-                    style={{
-                      backgroundColor: "#3b4a63",
-                      color: "white",
-                      padding: "12px 24px",
-                      borderRadius: "6px",
-                      border: "none",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                      display: "block",
-                      width: "80%",
-                      margin: "0 auto 15px auto",
-                    }}
-                  >
-                    {kid.name}
-                  </button>
-                </form>
+                {/* ✅ Each form isolated */}
+                <div>
+                  <form action={`/kids/${kid.id}/reading`} method="get">
+                    <button
+                      style={{
+                        backgroundColor: "#3b4a63",
+                        color: "white",
+                        padding: "12px 24px",
+                        borderRadius: "6px",
+                        border: "none",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        display: "block",
+                        width: "80%",
+                        margin: "0 auto 15px auto",
+                      }}
+                    >
+                      {kid.name}
+                    </button>
+                  </form>
+                </div>
               </div>
             ))}
           </div>
@@ -117,50 +91,46 @@ export default async function ParentDashboardPage() {
           <p style={{ color: "black", marginBottom: "20px" }}>No kids found.</p>
         )}
 
-        {/* ========================================================= */}
-        {/* SECTION 6 — Manage Kids Button */}
-        {/* ========================================================= */}
-        <form action="/parent/manage-kids" method="get">
-          <button
-            style={{
-              backgroundColor: "#3b4a63",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "6px",
-              border: "none",
-              fontWeight: "bold",
-              cursor: "pointer",
-              display: "block",
-              width: "80%",
-              margin: "0 auto 15px auto",
-            }}
-          >
-            Manage Kids
-          </button>
-        </form>
+        {/* ✅ Separate forms below — not nested */}
+        <div style={{ marginTop: "20px" }}>
+          <form action="/parent/manage-kids" method="get">
+            <button
+              style={{
+                backgroundColor: "#3b4a63",
+                color: "white",
+                padding: "12px 24px",
+                borderRadius: "6px",
+                border: "none",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "block",
+                width: "80%",
+                margin: "0 auto 15px auto",
+              }}
+            >
+              Manage Kids
+            </button>
+          </form>
 
-        {/* ========================================================= */}
-        {/* SECTION 7 — View Progress Button */}
-        {/* ========================================================= */}
-        <form action="/parent/progress" method="get">
-          <button
-            style={{
-              backgroundColor: "#3b4a63",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "6px",
-              border: "none",
-              fontWeight: "bold",
-              cursor: "pointer",
-              display: "block",
-              width: "80%",
-              margin: "0 auto",
-            }}
-          >
-            View Reading Progress Report
-          </button>
-        </form>
-
+          <form action="/parent/progress" method="get">
+            <button
+              style={{
+                backgroundColor: "#3b4a63",
+                color: "white",
+                padding: "12px 24px",
+                borderRadius: "6px",
+                border: "none",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "block",
+                width: "80%",
+                margin: "0 auto",
+              }}
+            >
+              View Reading Progress Report
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

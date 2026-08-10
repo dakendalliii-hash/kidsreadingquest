@@ -1,0 +1,174 @@
+Folder PATH listing for volume Windows
+Volume serial number is 00000178 00D0:671A
+C:\USERS\NOTLA\DEV\KIDSREADINGQUEST\APP
+|   app_tree.txt
+|   favicon.ico
+|   globals.css
+|   layout.tsx
+|   page.tsx
+|   
++---(public)
+|   |   layout.tsx
+|   |   
+|   +---choose-path
+|   |       ChoosePathClient.tsx
+|   |       page.tsx
+|   |       
+|   +---payment
+|   |       page.tsx
+|   |       PaymentClient.tsx
+|   |       
+|   \---signup
+|           actions.ts
+|           page.tsx
+|           
++---admin
+|       layout.tsx
+|       page.tsx
+|       
++---api
+|   \---passage
+|           route.ts
+|           
++---assessment
+|   |   AssessmentClient.tsx
+|   |   page.tsx
+|   |   
+|   +---disclaimer
+|   |       DisclaimerClient.tsx
+|   |       page.tsx
+|   |       
+|   +---fitness
+|   |   \---results
+|   |           page.tsx
+|   |           ResultsClient.tsx
+|   |           
+|   +---instructions
+|   |       InstructionsClient.tsx
+|   |       page.tsx
+|   |       
+|   +---processing
+|   |       page.tsx
+|   |       ProcessingClient.tsx
+|   |       
+|   +---read-aloud
+|   |       route.ts
+|   |       
+|   +---reading
+|   |       page.tsx
+|   |       ReadingClient.tsx
+|   |       
+|   +---results
+|   |       MetricsChart.tsx
+|   |       page.tsx
+|   |       
+|   +---score
+|   |       route.ts
+|   |       
+|   +---start
+|   |       route.ts
+|   |       
+|   \---welcome
+|           page.tsx
+|           WelcomeClient.tsx
+|           
++---auth
+|   \---callback
+|           page.tsx
+|           
++---contact
+|       page.tsx
+|       
++---debug
+|   |   Downloads - Shortcut.lnk
+|   |   
+|   \---cookies
+|           page.tsx
+|           
++---faq
+|       page.tsx
+|       
++---forgot-password
+|       page.tsx
+|       
++---help
+|   \---microphone
+|           page.tsx
+|           
++---kids
+|   |   layout.tsx
+|   |   page.tsx
+|   |   
+|   \---[id]
+|       |   actions.ts
+|       |   layout.tsx
+|       |   page.tsx
+|       |   
+|       +---assessment
+|       |       page.tsx
+|       |       
+|       +---assessment-evaluate
+|       |       route.ts
+|       |       
+|       +---read-aloud
+|       |       route.ts
+|       |       
+|       \---reading
+|               page.tsx
+|               ReadingClient.tsx
+|               
++---login
+|       actions.ts
+|       page.tsx
+|       
++---logout
+|       route.ts
+|       
++---parent
+|   |   layout.tsx
+|   |   page.tsx
+|   |   
+|   +---actions
+|   |       createKid.ts
+|   |       
+|   +---add-kid
+|   |   |   page.tsx
+|   |   |   
+|   |   +---results
+|   |   |       page.tsx
+|   |   |       
+|   |   \---start
+|   |           route.ts
+|   |           
+|   +---manage-kids
+|   |       ManageKidsClient.tsx
+|   |       page.tsx
+|   |       
+|   \---progress
+|           actions.ts
+|           page.tsx
+|           
++---post-logout
+|       page.tsx
+|       
++---program
+|   +---intro
+|   |       page.tsx
+|   |       ProgramIntroClient.tsx
+|   |       
+|   \---workoutPreparing
+|           page.tsx
+|           WorkoutPreparingClient.tsx
+|           
++---test
+|       page.tsx
+|       
++---test-buttons
+|       page.tsx
+|       
++---unauthorized
+|       page.tsx
+|       
+\---update-password
+        page.tsx
+        

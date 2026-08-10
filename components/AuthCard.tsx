@@ -4,8 +4,10 @@ export default function AuthCard({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-backgroundColor: "transparent",
-boxShadow: "none",
+        position: "relative",     // ⭐ REQUIRED: creates stacking context
+        zIndex: 20,               // ⭐ REQUIRED: ensures card renders above background
+        backgroundColor: "transparent",
+        boxShadow: "none",
         borderRadius: "16px",
         padding: "40px",
         width: "85%",
