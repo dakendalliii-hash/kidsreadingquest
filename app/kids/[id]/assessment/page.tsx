@@ -117,11 +117,13 @@ return (
           }}
         >
 
-  <AssessmentClientWrapper
-    kidId={kidId}
-    passage={passageObj}
-    band={passageObj.band}
-  />
+<AssessmentClientWrapper
+  kidId={kidId}
+  passage={passageObj}
+  band={passageObj.band}
+  siteId={passageObj.site_id}
+  passageIndex={passageObj.passage_index}
+/>
         </div>
       </FormContainer>
     </div>

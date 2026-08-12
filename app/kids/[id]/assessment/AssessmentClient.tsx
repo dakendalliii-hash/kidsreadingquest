@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import MicReader from "@/components/MicReader";
 
@@ -24,46 +24,91 @@ export default function AssessmentClient({
   const handleResults = (results: any) => {
     setIsComplete(true);
 
+    // ⭐ Unpack local + server metrics correctly
+    const {
+      wpm,
+      accuracy,
+      errors,
+      totalWords,
+      totalSeconds,
+      mispronounced,
+      skipped,
+      inserted,
+      repeated,
+    } = results.metrics;
+
+    const { placement, reason } = results.server;
+
+    // ⭐ Build results URL with camelCase keys
     const url = new URL(
       `/kids/${kidId}/assessment/results`,
       window.location.origin
     );
 
-    url.searchParams.set("band", band);
-    url.searchParams.set("title", title);
-    url.searchParams.set("text_en", textEn);
-    url.searchParams.set("text_hi", textHi);
+    url.searchParams.set("wpm", String(wpm));
+    url.searchParams.set("accuracy", String(accuracy));
+    url.searchParams.set("errors", String(errors));
 
-    url.searchParams.set("wpm", String(results.wpm));
-    url.searchParams.set("accuracy", String(results.accuracy));
-    url.searchParams.set("errors", String(results.errors));
-    url.searchParams.set("total_words", String(results.totalWords));
-    url.searchParams.set("total_seconds", String(results.totalSeconds));
+    url.searchParams.set("totalWords", String(totalWords));
+    url.searchParams.set("totalSeconds", String(totalSeconds));
 
-    url.searchParams.set("mispronounced", String(results.mispronounced));
-    url.searchParams.set("skipped", String(results.skipped));
-    url.searchParams.set("inserted", String(results.inserted));
-    url.searchParams.set("repeated", String(results.repeated));
+    url.searchParams.set("mispronounced", String(mispronounced));
+    url.searchParams.set("skipped", String(skipped));
+    url.searchParams.set("inserted", String(inserted));
+    url.searchParams.set("repeated", String(repeated));
 
-    url.searchParams.set("placement", results.placement);
-    url.searchParams.set("reason", results.reason);
+    url.searchParams.set("placement", placement);
+    url.searchParams.set("reason", reason);
 
     router.push(url.toString());
   };
 
   return (
-    <div style={{ padding: "40px", maxWidth: "800px", margin: "0 auto", color: "black" }}>
-      <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "20px" }}>
+    <div
+      style={{
+        padding: "40px",
+        maxWidth: "800px",
+        margin: "0 auto",
+        color: "black",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: "2rem",
+          fontWeight: "bold",
+          marginBottom: "20px",
+        }}
+      >
         {title}
       </h1>
 
-      <h2 style={{ fontSize: "1.2rem", marginBottom: "10px" }}>English Passage</h2>
-      <p style={{ backgroundColor: "#f9f9f9", padding: "20px", borderRadius: "8px", marginBottom: "30px", lineHeight: "1.6" }}>
+      <h2 style={{ fontSize: "1.2rem", marginBottom: "10px" }}>
+        English Passage
+      </h2>
+      <p
+        style={{
+          backgroundColor: "#f9f9f9",
+          padding: "20px",
+          borderRadius: "8px",
+          marginBottom: "30px",
+          lineHeight: "1.6",
+        }}
+      >
         {textEn}
       </p>
 
-      <h2 style={{ fontSize: "1.2rem", marginBottom: "10px" }}>Hindi Passage</h2>
-      <p style={{ backgroundColor: "#f9f9f9", padding: "20px", borderRadius: "8px", marginBottom: "30px", lineHeight: "1.6" }}>
+      <h2 style={{ fontSize: "1.2rem", marginBottom: "10px" }}>
+        Hindi Passage
+      </h2>
+      <p
+        style={{
+          backgroundColor: "#f9f9f9",
+          padding: "20px",
+          borderRadius: "8px",
+          marginBottom: "30px",
+          lineHeight: "1.6",
+        }}
+      >
         {textHi}
       </p>
 
@@ -88,14 +133,15 @@ export default function AssessmentClient({
         </button>
       )}
 
-<MicReader
-  passageEnglish={textEn}
-  passageLocalized={textHi}
-  kidId={kidId}
-  language="en"
-  band={band}
-  onComplete={handleResults}
-/>
+      <MicReader
+        passageEnglish={textEn}
+        passageLocalized={textHi}
+        kidId={kidId}
+        language="en"
+        band={band}
+        onComplete={handleResults}
+        mode="assessment"
+      />
 
       {isComplete && (
         <div

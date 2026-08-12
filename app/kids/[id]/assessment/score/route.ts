@@ -1,32 +1,58 @@
-import { redirect } from "next/navigation";
-
 export async function POST(request: Request) {
-  const formData = await request.formData();
+  try {
+    const body = await request.json();
 
-  const wpm = Number(formData.get("wpm"));
-  const accuracy = Number(formData.get("accuracy"));
-  const errors = Number(formData.get("errors"));
-  const age = Number(formData.get("age"));
-  const band = formData.get("band") as string;
+    const { metrics, band } = body;
 
-  let expectedBand = "";
-  if (age <= 5) expectedBand = "A 4-5";
-  else if (age <= 7) expectedBand = "B 6-7";
-  else expectedBand = "C 8-9";
+    const accuracy = Number(metrics.accuracy);
+    const errors = Number(metrics.errors);
 
-  let placement = expectedBand;
-  let reason = "This is the correct starting band.";
+    // ⭐ Determine next band in sequence
+    const bandOrder = ["A 4-5", "B 6-7", "C 8-9"];
+    const currentIndex = bandOrder.indexOf(band);
 
-  if (accuracy < 85 || errors > 10) {
-    reason = "Below expected fluency for this band.";
-  } else if (band !== expectedBand) {
-    placement = band;
-    reason = "Ready for a higher band.";
+    let placement = band;
+    let reason = "Performance meets expectations for this band.";
+
+    // ⭐ Rule 1: If kid is already in highest band → stay there
+    if (band === "C 8-9") {
+      placement = "C 8-9";
+      reason = "This is the highest band. Continue here.";
+    }
+    // ⭐ Rule 2: If accuracy > 95 AND errors < 5 → recommend next band
+    else if (accuracy > 95 && errors < 5) {
+      const nextBand = bandOrder[currentIndex + 1];
+      placement = nextBand;
+      reason = "Strong fluency. Ready for a higher band.";
+    }
+    // ⭐ Rule 3: Otherwise → stay in current band
+    else {
+      placement = band;
+      reason = "Start with this band to build fluency.";
+    }
+
+    return new Response(
+      JSON.stringify({
+        placement,
+        reason,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    console.error("Assessment score error:", err);
+
+    return new Response(
+      JSON.stringify({
+        placement: "",
+        reason: "Server error processing assessment.",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
-
-  redirect(
-    `/assessment/results?placement=${encodeURIComponent(
-      placement
-    )}&reason=${encodeURIComponent(reason)}&wpm=${wpm}&accuracy=${accuracy}&errors=${errors}`
-  );
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import MicReader from "@/components/MicReader";
-import FormContainer from "@/components/FormContainer"; // ✅ Restored import
+import FormContainer from "@/components/FormContainer";
 
 export default function AssessmentClientWrapper({
   kidId,
@@ -17,15 +17,17 @@ export default function AssessmentClientWrapper({
   siteId: number;
   passageIndex: number;
 }) {
-  const [language, setLanguage] = useState(
+  const [language, setLanguage] = useState<"en" | "hindi">(
     passage.language?.toLowerCase() === "hindi" ? "hindi" : "en"
   );
+
   const [currentPassage, setCurrentPassage] = useState(passage.text);
   const [loadingPassage, setLoadingPassage] = useState(false);
 
   async function fetchPassageForLanguage(newLang: "en" | "hindi") {
     try {
       setLoadingPassage(true);
+
       const res = await fetch("/api/passage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -36,8 +38,11 @@ export default function AssessmentClientWrapper({
           language: newLang,
         }),
       });
+
       const data = await res.json();
-      if (res.ok && data.text) setCurrentPassage(data.text);
+      if (res.ok && data.text) {
+        setCurrentPassage(data.text);
+      }
     } finally {
       setLoadingPassage(false);
     }
@@ -49,17 +54,26 @@ export default function AssessmentClientWrapper({
     await fetchPassageForLanguage(newLang);
   }
 
-  // ✅ Correct redirect for AssessmentClientWrapper (assessment flow)
+  /**
+   * ⭐ Unified MicReader return shape:
+   * {
+   *   metrics: { wpm, accuracy, errors, totalWords, totalSeconds, ... },
+   *   server:  { placement, reason }
+   * }
+   */
   function handleSuccessRedirect(result: any) {
+    const { metrics, server } = result;
+
     const params = new URLSearchParams({
-      wpm: result.wpm?.toString() ?? "",
-      accuracy: result.accuracy?.toString() ?? "",
-      errors: result.errors?.toString() ?? "",
-      totalWords: result.totalWords?.toString() ?? "",
-      totalSeconds: result.totalSeconds?.toString() ?? "",
-      placement: result.placement ?? "",
-      reason: result.reason ?? "",
+      wpm: metrics.wpm?.toString() ?? "",
+      accuracy: metrics.accuracy?.toString() ?? "",
+      errors: metrics.errors?.toString() ?? "",
+      totalWords: metrics.totalWords?.toString() ?? "",
+      totalSeconds: metrics.totalSeconds?.toString() ?? "",
+      placement: server.placement ?? "",
+      reason: server.reason ?? "",
     });
+
     window.location.href = `/kids/${kidId}/assessment/results?${params.toString()}`;
   }
 
@@ -77,7 +91,7 @@ export default function AssessmentClientWrapper({
           padding: "20px 0",
         }}
       >
-        {/* ✅ Language Selector centered above passage */}
+        {/* ⭐ Language Selector */}
         <div
           style={{
             marginBottom: "20px",
@@ -119,7 +133,7 @@ export default function AssessmentClientWrapper({
           </button>
         </div>
 
-        {/* ✅ Passage Display expanded horizontally */}
+        {/* ⭐ Passage Display */}
         <div
           style={{
             backgroundColor: "white",
@@ -129,7 +143,7 @@ export default function AssessmentClientWrapper({
             color: "black",
             boxShadow: "0 0 10px rgba(0,0,0,0.2)",
             marginBottom: "20px",
-            width: "95%", // expanded horizontally
+            width: "95%",
             maxWidth: "1000px",
           }}
         >
@@ -142,13 +156,16 @@ export default function AssessmentClientWrapper({
           </p>
         </div>
 
-        {/* ✅ Read Aloud button centered below passage */}
+        {/* ⭐ MicReader (assessment mode) */}
         <div style={{ display: "flex", justifyContent: "center" }}>
           <MicReader
-            passageText={currentPassage}
+            passageEnglish={currentPassage}
+            passageLocalized={currentPassage}
             kidId={kidId}
             language={language}
-            onSuccessRedirect={handleSuccessRedirect}
+            band={band}
+            onComplete={handleSuccessRedirect}
+            mode="assessment"   // ⭐ REQUIRED FIX
           />
         </div>
       </div>

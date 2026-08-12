@@ -79,12 +79,7 @@ export default async function KidReadingPage({ params }: { params: Promise<{ id:
         <AuthCard>
           <h1 className="section-header">Kid Reading Quest</h1>
 
-          <ReadingClient
-            kidId={kid.id}
-            kidName={kid.name}
-            band={progress.band}
-            passage={passageText}
-          />
+<ReadingClient kidId={kid.id} />
         </AuthCard>
       </div>
     </div>

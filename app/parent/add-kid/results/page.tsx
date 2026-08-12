@@ -1,19 +1,22 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default function AddKidResultsPage({
+export default async function AddKidResultsPage({
   searchParams,
 }: {
-  searchParams: Record<string, string>;
+  searchParams: Promise<Record<string, string>>;
 }) {
+  // Next.js 16 requires awaiting searchParams
+  const params = await searchParams;
+
   // Extract metrics from query params
-  const wpm = searchParams.wpm ?? "";
-  const accuracy = searchParams.accuracy ?? "";
-  const errors = searchParams.errors ?? "";
-  const totalWords = searchParams.totalWords ?? "";
-  const totalSeconds = searchParams.totalSeconds ?? "";
-  const placement = searchParams.placement ?? "";
-  const reason = searchParams.reason ?? "";
+  const wpm = params.wpm ?? "";
+  const accuracy = params.accuracy ?? "";
+  const errors = params.errors ?? "";
+  const totalWords = params.totalWords ?? "";
+  const totalSeconds = params.totalSeconds ?? "";
+  const placement = params.placement ?? "";
+  const reason = params.reason ?? "";
 
   return (
     <div

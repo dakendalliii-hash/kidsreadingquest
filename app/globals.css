@@ -46,6 +46,7 @@ a {
   justify-content: center;
   align-items: center;
   backdrop-filter: blur(6px);
+  top: 10px;
 }
 
 /* TEXT */
@@ -238,4 +239,27 @@ select.input-field {
   padding: 12px 24px;
   cursor: pointer;
 }
+
+/* Background card */
+.background-card {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 1000px;
+  padding: 40px;
+  margin: 0 auto;
+  top: 20px;
+}
+
+/* Forward card (content or form) */
+.forward-card {
+  background-color: #fefce8;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 20px;
+  width: 100%;
+  top: 40px;
+}
+
 

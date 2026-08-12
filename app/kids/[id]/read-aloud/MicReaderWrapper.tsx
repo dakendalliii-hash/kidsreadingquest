@@ -100,6 +100,7 @@ export default function MicReaderWrapper({
           band={band}
           kidId={kidId}
           onComplete={handleComplete}
+          mode="existing"
         />
       )}
     </div>

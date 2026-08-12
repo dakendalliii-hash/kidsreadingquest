@@ -1,23 +1,31 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default function AssessmentResultsPage({
+export default async function AssessmentResultsPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams: Record<string, string>;
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string>>;
 }) {
-  const kidId = params.id;
+  const { id: kidId } = await params;
+  const query = await searchParams;
 
-  // Extract metrics from query params
-  const wpm = searchParams.wpm ?? "";
-  const accuracy = searchParams.accuracy ?? "";
-  const errors = searchParams.errors ?? "";
-  const totalWords = searchParams.totalWords ?? "";
-  const totalSeconds = searchParams.totalSeconds ?? "";
-  const placement = searchParams.placement ?? "";
-  const reason = searchParams.reason ?? "";
+  // Extract metrics EXACTLY as AssessmentClient sends them
+  const wpm = query.wpm ?? "";
+  const accuracy = query.accuracy ?? "";
+  const errors = query.errors ?? "";
+
+  const totalWords = query.totalWords ?? "";
+  const totalSeconds = query.totalSeconds ?? "";
+
+  const mispronounced = query.mispronounced ?? "";
+  const skipped = query.skipped ?? "";
+  const inserted = query.inserted ?? "";
+  const repeated = query.repeated ?? "";
+
+  const placement = query.placement ?? "";
+  const reason = query.reason ?? "";
 
   return (
     <div
@@ -78,8 +86,15 @@ export default function AssessmentResultsPage({
               <li><strong>Words per Minute:</strong> {wpm}</li>
               <li><strong>Accuracy:</strong> {accuracy}%</li>
               <li><strong>Errors:</strong> {errors}</li>
+
               <li><strong>Total Words:</strong> {totalWords}</li>
               <li><strong>Total Time:</strong> {totalSeconds} seconds</li>
+
+              <li><strong>Mispronounced:</strong> {mispronounced}</li>
+              <li><strong>Skipped:</strong> {skipped}</li>
+              <li><strong>Inserted:</strong> {inserted}</li>
+              <li><strong>Repeated:</strong> {repeated}</li>
+
               <li><strong>Placement Band:</strong> {placement}</li>
               <li><strong>Reason:</strong> {reason}</li>
             </ul>

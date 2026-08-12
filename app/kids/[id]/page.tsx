@@ -1,14 +1,13 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-import { redirect } from "next/navigation";
+import KidDetailClientWrapper from "@/components/KidDetailClientWrapper";
 
 // =========================================================
-// WORKOUT ENTRY POINT
+// EXISTING KID ENTRY POINT
 // =========================================================
-// This page must NOT load the assessment wrapper.
-// It must redirect directly to the workout screen:
-// /kids/[id]/reading
+// This page MUST load the KidDetailClientWrapper.
+// It must NOT redirect to reading or assessment.
 // =========================================================
 
 export default async function KidDetailPage({
@@ -18,5 +17,14 @@ export default async function KidDetailPage({
 }) {
   const { id: kidId } = await params;
 
-  redirect(`/kids/${kidId}/reading`);
+  return (
+    <KidDetailClientWrapper
+      kidId={kidId}
+      passageText=""          // wrapper will fetch passage
+      initialLanguage="en"    // wrapper handles toggle
+      band=""                 // wrapper fetches band
+      siteId={0}              // wrapper fetches site
+      passageIndex={0}        // wrapper fetches index
+    />
+  );
 }

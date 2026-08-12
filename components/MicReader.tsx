@@ -9,6 +9,7 @@ export default function MicReader({
   language,
   band,
   onComplete,
+  mode, // ⭐ Added at end
 }: {
   passageEnglish: string;
   passageLocalized: string;
@@ -16,6 +17,7 @@ export default function MicReader({
   language: "en" | "hindi";
   band: string;
   onComplete: (results: any) => void;
+  mode: "assessment" | "existing"; // ⭐ Added at end
 }) {
   const [isListening, setIsListening] = useState(false);
   const [showPrivacyBanner, setShowPrivacyBanner] = useState(false);
@@ -93,24 +95,88 @@ export default function MicReader({
     setShowPrivacyBanner(true);
     setTimeout(() => setShowPrivacyBanner(false), 4000);
 
-    try {
-      const res = await fetch(`/kids/${kidId}/read-aloud/api`, {
-        method: "POST",
-        body: JSON.stringify({
-          transcript,
-          passageEnglish,
-          passageLocalized,
-          language,
-          band,
-          kidId,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+    // ⭐ LOCAL METRIC CALCULATION
+    const passageWords = passageEnglish.split(/\s+/);
+    const spokenWords = transcript.trim().split(/\s+/);
 
-      const data = await res.json();
-      onComplete(data);
+    const totalWords = passageWords.length;
+    let correct = 0;
+    let errors = 0;
+
+    for (let i = 0; i < passageWords.length; i++) {
+      if (
+        spokenWords[i] &&
+        spokenWords[i].toLowerCase() === passageWords[i].toLowerCase()
+      ) {
+        correct++;
+      } else {
+        errors++;
+      }
+    }
+
+    const accuracy = Math.round((correct / totalWords) * 100);
+
+    // ⭐ Placeholder timing (can be replaced with real timing later)
+    const totalSeconds = 10;
+    const wpm = Math.round((spokenWords.length / totalSeconds) * 60);
+
+    const metrics = {
+      wpm,
+      accuracy,
+      errors,
+      totalWords,
+      totalSeconds,
+      transcript,
+      band,
+      kidId,
+      language,
+    };
+
+    console.log("[MicReader] Local metrics:", metrics);
+
+    // ⭐ ROUTE BASED ON MODE
+    let serverResponse;
+
+    try {
+      if (mode === "assessment") {
+        // ⭐ ASSESSMENT FLOW
+        const res = await fetch(`/kids/${kidId}/assessment/score`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            metrics,
+            band,
+            kidId,
+          }),
+        });
+
+        serverResponse = await res.json();
+      } else {
+        // ⭐ EXISTING KID FLOW
+        const res = await fetch(`/kids/${kidId}/read-aloud/api`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transcript,
+            passageEnglish,
+            passageLocalized,
+            language,
+            band,
+            kidId,
+            metrics,
+          }),
+        });
+
+        serverResponse = await res.json();
+      }
+
+      console.log("[MicReader] Server response:", serverResponse);
+
+      // ⭐ UNIFIED RETURN SHAPE
+      onComplete({
+        metrics,
+        server: serverResponse,
+      });
     } catch (err) {
       console.error("MicReader fetch error:", err);
       setErrorMessage(ui.serverError);

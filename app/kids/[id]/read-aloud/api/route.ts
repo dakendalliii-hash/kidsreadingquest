@@ -15,7 +15,10 @@ export async function POST(
   const body = await req.json();
   console.log("[READ-ALOUD API] Received body:", body);
 
-  const { wpm, accuracy, errors } = body;
+const { metrics } = body;
+const wpm = metrics?.wpm ?? 0;
+const accuracy = metrics?.accuracy ?? 0;
+const errors = metrics?.errors ?? 0;
 
   // ⭐ Band A thresholds
   const fluencyPassed =
@@ -104,8 +107,9 @@ export async function POST(
     console.log("[READ-ALOUD API] Progress updated");
   }
 
-  return NextResponse.json({
-    advance: true,
-    bandComplete,
-  });
+return NextResponse.json({
+  advance: fluencyPassed,
+  bandComplete,
+  fluencyPassed,
+});
 }
