@@ -5,14 +5,10 @@ import { useSearchParams } from "next/navigation";
 import KidDetailClientWrapper from "@/components/KidDetailClientWrapper";
 
 /**
- * ReadingClient
+ * ReadingClient (English‑only version)
  *
- * This component is the entry point for the existing‑kid reading flow.
- * After a successful read‑aloud, the server action redirects to:
- *    /kids/[id]?celebrate=1&lang=en
- *
- * ReadingClient detects that redirect, fetches the updated passage
- * (band, siteId, passageIndex, text), and passes it to the wrapper.
+ * This component loads the kid's current progress and the correct English passage.
+ * Hindi support is commented out per project directive.
  */
 
 export default function ReadingClient({
@@ -22,11 +18,13 @@ export default function ReadingClient({
 }) {
   const searchParams = useSearchParams();
 
-  // Query flags from server action redirect
-  const celebrate = searchParams.get("celebrate") === "1";
-  const lang = (searchParams.get("lang") ?? "en") as "en" | "hindi";
+  // Force English only
+  const lang: "en" = "en";
+  // const lang = (searchParams.get("lang") ?? "en") as "en" | "hindi"; // ❌ commented out
 
-  // State for the next passage
+  const celebrate = searchParams.get("celebrate") === "1";
+
+  // State for the passage
   const [loading, setLoading] = useState(true);
   const [passageText, setPassageText] = useState("");
   const [band, setBand] = useState("");
@@ -34,15 +32,15 @@ export default function ReadingClient({
   const [passageIndex, setPassageIndex] = useState(0);
 
   /**
-   * Load the kid's updated progress + passage text
-   * after the server action updates progress.
+   * Load the kid's current progress + English passage text.
+   * This runs on mount and after redirect from read‑aloud.
    */
   useEffect(() => {
-    async function loadNextPassage() {
+    async function loadCurrentPassage() {
       try {
         setLoading(true);
 
-        // 1. Fetch updated progress
+        // 1. Fetch current progress (NOT advance)
         const progressRes = await fetch(`/kids/${kidId}/reading/api/progress`);
         const progress = await progressRes.json();
 
@@ -50,35 +48,37 @@ export default function ReadingClient({
         setSiteId(progress.site_id);
         setPassageIndex(progress.passage_index);
 
-        // 2. Fetch passage text for the updated progress
-        const passageRes = await fetch("/api/passage", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            band: progress.band,
-            siteId: progress.site_id,
-            passageIndex: progress.passage_index,
-            language: lang,
-          }),
-        });
+        // 2. Fetch English passage for current progress
+        const passageRes = await fetch(
+          `/kids/${kidId}/reading/api/passage`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              band: progress.band,
+              siteId: progress.site_id,
+              passageIndex: progress.passage_index,
+              language: "en", // English only
+              // language: lang, // ❌ commented out
+            }),
+          }
+        );
 
         const passageData = await passageRes.json();
-
-console.log("Passage data:", passageData);
-
         setPassageText(passageData.text ?? "");
       } finally {
         setLoading(false);
       }
     }
 
-    loadNextPassage();
-  }, [kidId, lang]);
+    loadCurrentPassage();
+  }, [kidId]);
 
   if (loading) {
     return (
       <div style={{ padding: "40px", textAlign: "center", color: "black" }}>
-        {lang === "hindi" ? "अगला पैसेज लोड हो रहा है..." : "Loading next passage..."}
+        Loading next passage...
+        {/* {lang === "hindi" ? "अगला पैसेज लोड हो रहा है..." : "Loading next passage..."} */}
       </div>
     );
   }
@@ -87,7 +87,8 @@ console.log("Passage data:", passageData);
     <KidDetailClientWrapper
       kidId={kidId}
       passageText={passageText}
-      initialLanguage={lang}
+      initialLanguage="en" // English only
+      // initialLanguage={lang} // ❌ commented out
       band={band}
       siteId={siteId}
       passageIndex={passageIndex}

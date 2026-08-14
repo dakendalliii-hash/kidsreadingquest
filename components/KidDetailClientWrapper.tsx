@@ -20,23 +20,30 @@ export default function KidDetailClientWrapper({
   siteId: number;
   passageIndex: number;
 }) {
-  const [language, setLanguage] = useState<"en" | "hindi">(
-    initialLanguage.toLowerCase() === "hindi" ? "hindi" : "en"
-  );
+  /**
+   * ENGLISH ONLY
+   */
+  const [language] = useState<"en">("en");
 
   const [currentPassage, setCurrentPassage] = useState(passageText);
   const [loadingPassage, setLoadingPassage] = useState(false);
   const [failureMessage, setFailureMessage] = useState<string | null>(null);
 
-  // Celebration overlay state
   const [showCelebration, setShowCelebration] = useState(false);
 
-  // Track updated band/site/passageIndex after progress advance
   const [currentBand, setCurrentBand] = useState(band);
   const [currentSiteId, setCurrentSiteId] = useState(siteId);
   const [currentPassageIndex, setCurrentPassageIndex] = useState(passageIndex);
 
-  // Fetch passage using UPDATED values
+  // ⭐ Guard to prevent double advancement
+  const [hasAdvanced, setHasAdvanced] = useState(false);
+
+  // ⭐ NEW: retry counter to force MicReader remount
+  const [retryCount, setRetryCount] = useState(0);
+
+  /**
+   * Fetch ENGLISH passage only.
+   */
   async function fetchPassage(newBand: string, newSiteId: number, newIndex: number) {
     try {
       setLoadingPassage(true);
@@ -48,7 +55,7 @@ export default function KidDetailClientWrapper({
           band: newBand,
           siteId: newSiteId,
           passageIndex: newIndex,
-          language,
+          language: "en",
         }),
       });
 
@@ -61,117 +68,69 @@ export default function KidDetailClientWrapper({
     }
   }
 
-  async function handleLanguageChange(newLang: "en" | "hindi") {
-    if (language === newLang) return;
-    setLanguage(newLang);
+  /**
+   * Fetch UPDATED progress (server already advanced it).
+   */
+  async function fetchUpdatedProgress() {
+    const res = await fetch(`/kids/${kidId}/reading/api/progress`);
+    const data = await res.json();
 
-    // Use updated band/site/index
-    await fetchPassage(currentBand, currentSiteId, currentPassageIndex);
-  }
+    setCurrentBand(data.band);
+    setCurrentSiteId(data.site_id);
+    setCurrentPassageIndex(data.passage_index);
 
-  // Load next passage after celebration ends
-  async function loadNextPassage() {
-    try {
-      const res = await fetch(`/kids/${kidId}/reading/api/progress/advance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kidId, language }),
-      });
-
-      const data = await res.json();
-      console.log("[Wrapper] Next passage info:", data);
-
-      if (data.celebrate) {
-        // Band complete — future enhancement
-        setShowCelebration(false);
-        return;
-      }
-
-      // Update local state with new progress
-      setCurrentBand(data.band);
-      setCurrentSiteId(data.site_id);
-      setCurrentPassageIndex(data.passage_index);
-
-      // Fetch next passage
-      await fetchPassage(data.band, data.site_id, data.passage_index);
-
-      // Hide celebration overlay
-      setShowCelebration(false);
-    } catch (err) {
-      console.error("Error loading next passage:", err);
-    }
+    await fetchPassage(data.band, data.site_id, data.passage_index);
   }
 
   /**
-   * Metrics-aware completion handler
-   * MicReader returns: { metrics, server }
+   * MicReader completion handler
    */
   async function handleComplete(results: any) {
+    console.log("[Wrapper] handleComplete fired");
+
+    // Always clear old failure message
+    setFailureMessage(null);
+
     const { metrics, server } = results;
-
-    console.log("[Wrapper] Metrics received:", metrics);
-    console.log("[Wrapper] Server response received:", server);
-
     const { accuracy, wpm } = metrics;
 
-    // Server fluency failure
-    if (server && server.fluencyPassed === false) {
-      setFailureMessage(
-        language === "hindi"
-          ? "पढ़ने की प्रवाहिता पर्याप्त नहीं है। फिर से कोशिश करें!"
-          : "Fluency not high enough. Try again!"
-      );
-      return;
-    }
+    // Reset guard immediately so wrapper can respond to next read
+    setHasAdvanced(false);
 
-    // Client correctness check
-    const acceptable = accuracy >= 90 && wpm >= 40;
-
-    if (acceptable) {
-      console.log("[Wrapper] Read acceptable — triggering celebration.");
-
-      // Show celebration overlay
+    // Backend is the source of truth
+    if (server && server.fluencyPassed === true) {
       setShowCelebration(true);
 
-      // Celebration lasts 5 seconds → match Celebration.tsx timer
       setTimeout(() => {
-        loadNextPassage();
+        fetchUpdatedProgress();
+        setShowCelebration(false);
       }, 5000);
 
       return;
     }
 
-    console.log("[Wrapper] Read NOT acceptable — advancing progress.");
+    // ⭐ Backend says failure → force MicReader remount
+    if (server && server.fluencyPassed === false) {
+      setFailureMessage("Fluency not high enough. Try again!");
 
-    // Fallback progression logic
-    try {
-      const res = await fetch(`/kids/${kidId}/reading/api/progress/advance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kidId, language }),
-      });
+      // ⭐ Force MicReader to fully reset
+      setRetryCount((c) => c + 1);
 
-      const data = await res.json();
-      console.log("[Wrapper] Progress advance response:", data);
+      return;
+    }
 
-      if (data.celebrate) {
-        setShowCelebration(true);
-        setTimeout(() => {
-          setShowCelebration(false);
-        }, 5000);
-        return;
-      }
+    // Local fallback (optional)
+    const acceptable = accuracy >= 90 && wpm >= 40;
 
-      // Update progress locally
-      setCurrentBand(data.band);
-      setCurrentSiteId(data.site_id);
-      setCurrentPassageIndex(data.passage_index);
+    if (acceptable) {
+      setShowCelebration(true);
 
-      // Fetch next passage
-      await fetchPassage(data.band, data.site_id, data.passage_index);
-    } catch (err) {
-      console.error("Error advancing passage:", err);
-      alert("Something went wrong updating progress. Please try again.");
+      setTimeout(() => {
+        fetchUpdatedProgress();
+        setShowCelebration(false);
+      }, 5000);
+
+      return;
     }
   }
 
@@ -191,50 +150,8 @@ export default function KidDetailClientWrapper({
       >
         {/* Celebration Overlay */}
         {showCelebration && (
-          <Celebration kidId={kidId} language={language} />
+          <Celebration kidId={kidId} language="en" />
         )}
-
-        {/* Language Selector */}
-        <div
-          style={{
-            marginBottom: "20px",
-            display: "flex",
-            justifyContent: "center",
-            gap: "10px",
-          }}
-        >
-          <button
-            onClick={() => handleLanguageChange("en")}
-            style={{
-              backgroundColor: language === "en" ? "#4CAF50" : "#777",
-              color: "white",
-              padding: "8px 16px",
-              borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "bold",
-              whiteSpace: "nowrap",
-            }}
-          >
-            English
-          </button>
-
-          <button
-            onClick={() => handleLanguageChange("hindi")}
-            style={{
-              backgroundColor: language === "hindi" ? "#4CAF50" : "#777",
-              color: "white",
-              padding: "8px 16px",
-              borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "bold",
-              whiteSpace: "nowrap",
-            }}
-          >
-            हिंदी
-          </button>
-        </div>
 
         {/* Passage Display */}
         <div
@@ -251,21 +168,18 @@ export default function KidDetailClientWrapper({
           }}
         >
           <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
-            {loadingPassage
-              ? language === "hindi"
-                ? "पैसेज लोड हो रहा है..."
-                : "Loading passage..."
-              : currentPassage}
+            {loadingPassage ? "Loading passage..." : currentPassage}
           </p>
         </div>
 
         {/* MicReader */}
         <div style={{ display: "flex", justifyContent: "center" }}>
           <MicReader
+            key={`${currentPassageIndex}-${retryCount}`}  // ⭐ forces full reset
             passageEnglish={currentPassage}
             passageLocalized={currentPassage}
             kidId={kidId}
-            language={language}
+            language="en"
             band={currentBand}
             onComplete={handleComplete}
             mode="existing"

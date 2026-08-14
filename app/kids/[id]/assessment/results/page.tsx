@@ -102,7 +102,7 @@ export default async function AssessmentResultsPage({
 
           <div style={{ marginTop: "32px" }}>
             <a
-              href={`/kids/${kidId}`}
+              href={`/parent`}
               style={{
                 backgroundColor: "#4CAF50",
                 color: "white",

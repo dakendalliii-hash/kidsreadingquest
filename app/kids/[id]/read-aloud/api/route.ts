@@ -23,8 +23,8 @@ const errors = metrics?.errors ?? 0;
   // ⭐ Band A thresholds
   const fluencyPassed =
     wpm >= 20 &&
-    accuracy >= 95 &&
-    errors <= 3;
+    accuracy >= 80 &&
+    errors <= 10;
 
   console.log("[READ-ALOUD API] Fluency passed:", fluencyPassed);
 

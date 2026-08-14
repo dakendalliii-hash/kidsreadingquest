@@ -17,25 +17,35 @@ export default function AssessmentClientWrapper({
   siteId: number;
   passageIndex: number;
 }) {
-  const [language, setLanguage] = useState<"en" | "hindi">(
-    passage.language?.toLowerCase() === "hindi" ? "hindi" : "en"
-  );
+  /**
+   * ENGLISH ONLY
+   * Hindi logic preserved but commented out.
+   */
+  const [language] = useState<"en">("en");
+  // const [language, setLanguage] = useState<"en" | "hindi">(
+  //   passage.language?.toLowerCase() === "hindi" ? "hindi" : "en"
+  // );
 
   const [currentPassage, setCurrentPassage] = useState(passage.text);
   const [loadingPassage, setLoadingPassage] = useState(false);
 
+  /**
+   * Fetch ENGLISH passage only.
+   * Hindi fetch preserved but commented.
+   */
   async function fetchPassageForLanguage(newLang: "en" | "hindi") {
     try {
       setLoadingPassage(true);
 
-      const res = await fetch("/api/passage", {
+      const res = await fetch(`/kids/${kidId}/reading/api/passage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           band,
           siteId,
           passageIndex,
-          language: newLang,
+          language: "en", // ENGLISH ONLY
+          // language: newLang, // ❌ commented out
         }),
       });
 
@@ -48,14 +58,18 @@ export default function AssessmentClientWrapper({
     }
   }
 
-  async function handleLanguageChange(newLang: "en" | "hindi") {
-    if (language === newLang) return;
-    setLanguage(newLang);
-    await fetchPassageForLanguage(newLang);
-  }
+  /**
+   * Language toggle removed.
+   * Hindi logic preserved but commented.
+   */
+  // async function handleLanguageChange(newLang: "en" | "hindi") {
+  //   if (language === newLang) return;
+  //   setLanguage(newLang);
+  //   await fetchPassageForLanguage(newLang);
+  // }
 
   /**
-   * ⭐ Unified MicReader return shape:
+   * MicReader unified return shape:
    * {
    *   metrics: { wpm, accuracy, errors, totalWords, totalSeconds, ... },
    *   server:  { placement, reason }
@@ -91,7 +105,8 @@ export default function AssessmentClientWrapper({
           padding: "20px 0",
         }}
       >
-        {/* ⭐ Language Selector */}
+        {/* ⭐ Language Selector (commented out, preserved exactly) */}
+        {/*
         <div
           style={{
             marginBottom: "20px",
@@ -132,6 +147,7 @@ export default function AssessmentClientWrapper({
             हिंदी
           </button>
         </div>
+        */}
 
         {/* ⭐ Passage Display */}
         <div
@@ -149,9 +165,10 @@ export default function AssessmentClientWrapper({
         >
           <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
             {loadingPassage
-              ? language === "hindi"
-                ? "पैसेज लोड हो रहा है..."
-                : "Loading passage..."
+              ? "Loading passage..."
+              // : language === "hindi"
+              //   ? "पैसेज लोड हो रहा है..."
+              //   : "Loading passage..."
               : currentPassage}
           </p>
         </div>
@@ -160,12 +177,13 @@ export default function AssessmentClientWrapper({
         <div style={{ display: "flex", justifyContent: "center" }}>
           <MicReader
             passageEnglish={currentPassage}
-            passageLocalized={currentPassage}
+            passageLocalized={currentPassage} // ENGLISH ONLY
             kidId={kidId}
-            language={language}
+            language="en"
+            // language={language} // ❌ commented out
             band={band}
             onComplete={handleSuccessRedirect}
-            mode="assessment"   // ⭐ REQUIRED FIX
+            mode="assessment"
           />
         </div>
       </div>
