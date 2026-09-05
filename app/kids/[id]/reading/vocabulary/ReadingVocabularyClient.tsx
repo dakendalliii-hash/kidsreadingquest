@@ -2,6 +2,19 @@
 
 import { useState } from "react";
 
+interface ReadingVocabularyClientProps {
+  kidId: string;
+  passageText: string;
+  band: string;
+  siteId: number;
+  passageIndex: number;
+  questions: {
+    question: string;
+    choices: string[];
+    correctIndex: number;
+  }[];
+}
+
 export default function ReadingVocabularyClient({
   kidId,
   passageText,
@@ -9,8 +22,10 @@ export default function ReadingVocabularyClient({
   siteId,
   passageIndex,
   questions,
-}) {
-  const [answers, setAnswers] = useState(Array(questions.length).fill(-1));
+}: ReadingVocabularyClientProps) {
+  const [answers, setAnswers] = useState<number[]>(
+    Array(questions.length).fill(-1)
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +44,9 @@ export default function ReadingVocabularyClient({
         return acc + (answers[i] === q.correctIndex ? 1 : 0);
       }, 0);
 
-      const scorePercent = Math.round((correctCount / questions.length) * 100);
+      const scorePercent = Math.round(
+        (correctCount / questions.length) * 100
+      );
 
       const res = await fetch(`/kids/${kidId}/reading/vocabulary/api`, {
         method: "POST",

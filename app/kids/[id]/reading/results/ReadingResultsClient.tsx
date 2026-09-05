@@ -2,6 +2,16 @@
 
 import React from "react";
 
+interface ReadingResultsClientProps {
+  kidId: string;
+  band: string;
+  siteId: number;
+  passageIndex: number;
+  fluencyAttempt: any;
+  comprehensionAttempt: any;
+  vocabularyAttempt: any;
+}
+
 export default function ReadingResultsClient({
   kidId,
   band,
@@ -10,7 +20,8 @@ export default function ReadingResultsClient({
   fluencyAttempt,
   comprehensionAttempt,
   vocabularyAttempt,
-}) {
+}: ReadingResultsClientProps) {
+
   // ⭐ All attempts share the same unified metrics object
   const metrics = fluencyAttempt?.metrics || {};
 
