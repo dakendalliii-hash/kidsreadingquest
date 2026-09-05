@@ -1,3 +1,17 @@
+// ============================================================================
+// FILE: /app/kids/[id]/assessment/results/page.tsx
+// PURPOSE:
+//   Server-rendered page that displays the results of a kid's reading assessment.
+//   Metrics are passed via URL query parameters from the AssessmentClient.
+//   This page extracts those metrics, displays them in a styled results card,
+//   and provides navigation back to the parent dashboard.
+//
+// NOTES:
+//   - This page is dynamic and never cached.
+//   - All metrics shown here come directly from the assessment flow.
+//   - No database writes occur in this file (display-only).
+// ============================================================================
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -8,10 +22,18 @@ export default async function AssessmentResultsPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string>>;
 }) {
+  // --------------------------------------------------------------------------
+  // Extract kid ID from dynamic route parameters
+  // --------------------------------------------------------------------------
   const { id: kidId } = await params;
+
+  // --------------------------------------------------------------------------
+  // Extract all assessment metrics from query parameters.
+  // These values were appended by the AssessmentClient after scoring.
+  // --------------------------------------------------------------------------
   const query = await searchParams;
 
-  // Extract metrics EXACTLY as AssessmentClient sends them
+  // Core reading metrics
   const wpm = query.wpm ?? "";
   const accuracy = query.accuracy ?? "";
   const errors = query.errors ?? "";
@@ -19,14 +41,24 @@ export default async function AssessmentResultsPage({
   const totalWords = query.totalWords ?? "";
   const totalSeconds = query.totalSeconds ?? "";
 
+  // Detailed error categories
   const mispronounced = query.mispronounced ?? "";
   const skipped = query.skipped ?? "";
   const inserted = query.inserted ?? "";
   const repeated = query.repeated ?? "";
 
+  // Placement recommendation
   const placement = query.placement ?? "";
   const reason = query.reason ?? "";
 
+  const transcript = query.transcript ?? "";
+
+
+
+  // --------------------------------------------------------------------------
+  // RENDER RESULTS PAGE
+  // This section displays all assessment metrics in a styled card.
+  // --------------------------------------------------------------------------
   return (
     <div
       style={{
@@ -63,6 +95,9 @@ export default async function AssessmentResultsPage({
             color: "black",
           }}
         >
+          {/* --------------------------------------------------------------
+              Header Section
+              -------------------------------------------------------------- */}
           <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "1rem" }}>
             Assessment Results
           </h1>
@@ -71,6 +106,9 @@ export default async function AssessmentResultsPage({
             Here are the reading metrics for this assessment.
           </p>
 
+          {/* --------------------------------------------------------------
+              Metrics Display Section
+              -------------------------------------------------------------- */}
           <div
             style={{
               textAlign: "left",
@@ -97,12 +135,16 @@ export default async function AssessmentResultsPage({
 
               <li><strong>Placement Band:</strong> {placement}</li>
               <li><strong>Reason:</strong> {reason}</li>
+              <li><strong>What we heard you say:</strong> {transcript}</li>
             </ul>
           </div>
 
+          {/* --------------------------------------------------------------
+              Navigation Section
+              -------------------------------------------------------------- */}
           <div style={{ marginTop: "32px" }}>
             <a
-              href={`/parent`}
+              href={`/kids/${kidId}/kid-profile`}
               style={{
                 backgroundColor: "#4CAF50",
                 color: "white",

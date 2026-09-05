@@ -17,26 +17,13 @@ export default function AssessmentClientWrapper({
   siteId: number;
   passageIndex: number;
 }) {
-  /**
-   * ENGLISH ONLY
-   * Hindi logic preserved but commented out.
-   */
   const [language] = useState<"en">("en");
-  // const [language, setLanguage] = useState<"en" | "hindi">(
-  //   passage.language?.toLowerCase() === "hindi" ? "hindi" : "en"
-  // );
-
   const [currentPassage, setCurrentPassage] = useState(passage.text);
   const [loadingPassage, setLoadingPassage] = useState(false);
 
-  /**
-   * Fetch ENGLISH passage only.
-   * Hindi fetch preserved but commented.
-   */
   async function fetchPassageForLanguage(newLang: "en" | "hindi") {
     try {
       setLoadingPassage(true);
-
       const res = await fetch(`/kids/${kidId}/reading/api/passage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,48 +31,72 @@ export default function AssessmentClientWrapper({
           band,
           siteId,
           passageIndex,
-          language: "en", // ENGLISH ONLY
-          // language: newLang, // ❌ commented out
+          language: "en",
         }),
       });
-
       const data = await res.json();
-      if (res.ok && data.text) {
-        setCurrentPassage(data.text);
-      }
+      if (res.ok && data.text) setCurrentPassage(data.text);
     } finally {
       setLoadingPassage(false);
     }
   }
 
   /**
-   * Language toggle removed.
-   * Hindi logic preserved but commented.
-   */
-  // async function handleLanguageChange(newLang: "en" | "hindi") {
-  //   if (language === newLang) return;
-  //   setLanguage(newLang);
-  //   await fetchPassageForLanguage(newLang);
-  // }
-
-  /**
    * MicReader unified return shape:
-   * {
-   *   metrics: { wpm, accuracy, errors, totalWords, totalSeconds, ... },
-   *   server:  { placement, reason }
-   * }
+   * { metrics: { ... } }
+   * MicReader no longer calls /assessment/score.
+   * We call it here to compute placement + reason.
    */
-  function handleSuccessRedirect(result: any) {
-    const { metrics, server } = result;
+  async function handleSuccessRedirect(results: any) {
+    if (!results || typeof results !== "object") {
+      console.error("Invalid results object:", results);
+      return;
+    }
+
+    const { metrics } = results;
+    if (!metrics) {
+      console.error("Missing metrics:", { metrics });
+      return;
+    }
+
+    // ⭐ Call assessment/score route to compute placement + reason
+    let placement = "";
+    let reason = "";
+    try {
+      const response = await fetch(`/kids/${kidId}/assessment/score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kidId, band, metrics }),
+      });
+      const data = await response.json();
+      placement = data.placement ?? "";
+      reason = data.reason ?? "";
+    } catch (err) {
+      console.error("Score route error:", err);
+    }
+
+    // Safe numeric defaults
+    const safeMetrics = {
+      wpm: metrics.wpm ?? 0,
+      accuracy: metrics.accuracy ?? 0,
+      errors: metrics.errors ?? 0,
+      totalWords: metrics.totalWords ?? 0,
+      totalSeconds: metrics.totalSeconds ?? 0,
+    };
 
     const params = new URLSearchParams({
-      wpm: metrics.wpm?.toString() ?? "",
-      accuracy: metrics.accuracy?.toString() ?? "",
-      errors: metrics.errors?.toString() ?? "",
-      totalWords: metrics.totalWords?.toString() ?? "",
-      totalSeconds: metrics.totalSeconds?.toString() ?? "",
-      placement: server.placement ?? "",
-      reason: server.reason ?? "",
+      wpm: safeMetrics.wpm.toString(),
+      accuracy: safeMetrics.accuracy.toString(),
+      errors: safeMetrics.errors.toString(),
+      totalWords: safeMetrics.totalWords.toString(),
+      totalSeconds: safeMetrics.totalSeconds.toString(),
+      placement,
+      reason,
+      transcript: metrics.transcript ?? "",
+      mispronounced: metrics.mispronounced?.toString() ?? "0",
+      skipped: metrics.skipped?.toString() ?? "0",
+      inserted: metrics.inserted?.toString() ?? "0",
+      repeated: metrics.repeated?.toString() ?? "0",
     });
 
     window.location.href = `/kids/${kidId}/assessment/results?${params.toString()}`;
@@ -105,50 +116,6 @@ export default function AssessmentClientWrapper({
           padding: "20px 0",
         }}
       >
-        {/* ⭐ Language Selector (commented out, preserved exactly) */}
-        {/*
-        <div
-          style={{
-            marginBottom: "20px",
-            display: "flex",
-            justifyContent: "center",
-            gap: "10px",
-          }}
-        >
-          <button
-            onClick={() => handleLanguageChange("en")}
-            style={{
-              backgroundColor: language === "en" ? "#4CAF50" : "#777",
-              color: "white",
-              padding: "8px 16px",
-              borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "bold",
-              whiteSpace: "nowrap",
-            }}
-          >
-            English
-          </button>
-
-          <button
-            onClick={() => handleLanguageChange("hindi")}
-            style={{
-              backgroundColor: language === "hindi" ? "#4CAF50" : "#777",
-              color: "white",
-              padding: "8px 16px",
-              borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "bold",
-              whiteSpace: "nowrap",
-            }}
-          >
-            हिंदी
-          </button>
-        </div>
-        */}
-
         {/* ⭐ Passage Display */}
         <div
           style={{
@@ -164,12 +131,7 @@ export default function AssessmentClientWrapper({
           }}
         >
           <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
-            {loadingPassage
-              ? "Loading passage..."
-              // : language === "hindi"
-              //   ? "पैसेज लोड हो रहा है..."
-              //   : "Loading passage..."
-              : currentPassage}
+            {loadingPassage ? "Loading passage..." : currentPassage}
           </p>
         </div>
 
@@ -177,11 +139,12 @@ export default function AssessmentClientWrapper({
         <div style={{ display: "flex", justifyContent: "center" }}>
           <MicReader
             passageEnglish={currentPassage}
-            passageLocalized={currentPassage} // ENGLISH ONLY
+            passageLocalized={currentPassage}
             kidId={kidId}
             language="en"
-            // language={language} // ❌ commented out
             band={band}
+            siteId={1}
+            passageIndex={1}
             onComplete={handleSuccessRedirect}
             mode="assessment"
           />

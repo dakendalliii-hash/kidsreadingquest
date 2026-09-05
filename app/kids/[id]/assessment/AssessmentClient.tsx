@@ -21,10 +21,10 @@ export default function AssessmentClient({
   const [isReading, setIsReading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
 
-  const handleResults = (results: any) => {
+  const handleResults = async (results: any) => {
     setIsComplete(true);
 
-    // ⭐ Unpack local + server metrics correctly
+    // ⭐ Extract MicReader metrics (MicReader no longer calls score route)
     const {
       wpm,
       accuracy,
@@ -35,11 +35,37 @@ export default function AssessmentClient({
       skipped,
       inserted,
       repeated,
+      transcript,
     } = results.metrics;
 
-    const { placement, reason } = results.server;
+    // ⭐ Build metrics object for reading_attempts.metrics jsonb
+    const metricsPayload = {
+      wpm,
+      accuracy,
+      errors,
+      totalWords,
+      totalSeconds,
+      mispronounced,
+      skipped,
+      inserted,
+      repeated,
+      transcript,
+    };
 
-    // ⭐ Build results URL with camelCase keys
+    // ⭐ Call assessment/score route (single source of truth)
+    const response = await fetch(`/kids/${kidId}/assessment/score`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kidId,
+        band,
+        metrics: metricsPayload,
+      }),
+    });
+
+    const { placement, reason } = await response.json();
+
+    // ⭐ Redirect to results page with query params
     const url = new URL(
       `/kids/${kidId}/assessment/results`,
       window.location.origin
@@ -48,10 +74,8 @@ export default function AssessmentClient({
     url.searchParams.set("wpm", String(wpm));
     url.searchParams.set("accuracy", String(accuracy));
     url.searchParams.set("errors", String(errors));
-
     url.searchParams.set("totalWords", String(totalWords));
     url.searchParams.set("totalSeconds", String(totalSeconds));
-
     url.searchParams.set("mispronounced", String(mispronounced));
     url.searchParams.set("skipped", String(skipped));
     url.searchParams.set("inserted", String(inserted));
@@ -139,6 +163,8 @@ export default function AssessmentClient({
         kidId={kidId}
         language="en"
         band={band}
+        siteId={1}
+        passageIndex={1}
         onComplete={handleResults}
         mode="assessment"
       />

@@ -65,7 +65,7 @@ export default async function ParentDashboardPage() {
 
                 {/* ✅ Each form isolated */}
                 <div>
-                  <form action={`/kids/${kid.id}/reading`} method="get">
+                  <form action={`/kids/${kid.id}/kid-profile/from-existing`} method="get">
                     <button
                       style={{
                         backgroundColor: "#3b4a63",

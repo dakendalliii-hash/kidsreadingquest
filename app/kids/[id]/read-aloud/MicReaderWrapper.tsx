@@ -2,81 +2,78 @@
 
 import { useState } from "react";
 import MicReader from "@/components/MicReader";
+import { createClient } from "@supabase/supabase-js";
 
 export default function MicReaderWrapper({
   passageLocalized,
   passageEnglish,
   band,
   kidId,
+  siteId,
+  passageIndex,
 }: {
   passageLocalized: string;
   passageEnglish: string;
   band: string;
   kidId: string;
+  siteId: number;
+  passageIndex: number;
 }) {
-  // ⭐ Default language is always English
-  const [language, setLanguage] = useState<"en" | "hindi">("en");
-  const [retry, setRetry] = useState(false);
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  // ⭐ Reload page with selected language param
-  const handleLanguageChange = (lang: "en" | "hindi") => {
-    const newUrl = `/kids/${kidId}/read-aloud?lang=${lang}`;
-    window.location.href = newUrl;
-  };
+  const [retry, setRetry] = useState(false);
 
   async function handleComplete(results: any) {
     console.log("[MicReaderWrapper] onComplete results:", results);
 
-    const res = await fetch(`/kids/${kidId}/read-aloud/api`, {
-      method: "POST",
-      body: JSON.stringify(results),
-    });
+    const { metrics, server } = results;
 
-    const data = await res.json();
-    console.log("[MicReaderWrapper] API response:", data);
+    // ⭐ FIX #1 — serverResponse shadowing bug caused fluencyPassed to always be false
+    const fluencyPassed = server?.fluencyPassed === true;
 
-    if (!data.advance) {
-      console.log("[MicReaderWrapper] Read failed → retry");
+    // ⭐ FIX #2 — MicReader already POSTED when mode === "existing"
+    // So we ONLY POST here when MicReader did NOT (assessment mode)
+    if (!server) {
+      const response = await fetch(`/kids/${kidId}/read-aloud/api`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          metrics,
+          band,
+          siteId,
+          passageIndex,
+        }),
+      });
+
+      const apiResult = await response.json();
+      console.log("[MicReaderWrapper] API result:", apiResult);
+
+      if (!apiResult || apiResult.error) {
+        console.error("[MicReaderWrapper] API error:", apiResult?.error);
+        setRetry(true);
+        return;
+      }
+    }
+
+    // ⭐ Fluency failure → retry
+    if (!fluencyPassed) {
       setRetry(true);
       return;
     }
 
-    if (data.bandComplete) {
-      window.location.href = `/kids/${kidId}/read-aloud?celebrate=1&bandComplete=1&lang=${language}`;
-    } else {
-      window.location.href = `/kids/${kidId}/read-aloud?celebrate=1&lang=${language}`;
-    }
+    // ⭐ Fluency passed → navigate to comprehension
+    window.location.href = `/kids/${kidId}/reading/comprehension`;
   }
 
   return (
     <div style={{ width: "100%" }}>
-      {/* ⭐ Language Toggle ABOVE passage */}
-      <div className="flex justify-center gap-3 mb-5">
-        <button
-          className={`btn ${
-            language === "en" ? "btn-primary" : "btn-secondary"
-          }`}
-          onClick={() => handleLanguageChange("en")}
-        >
-          English
-        </button>
-
-        <button
-          className={`btn ${
-            language === "hindi" ? "btn-primary" : "btn-secondary"
-          }`}
-          onClick={() => handleLanguageChange("hindi")}
-        >
-          हिन्दी
-        </button>
-      </div>
-
-      {/* ⭐ Display passage in selected language */}
       <p className="bg-gray-50 p-5 rounded-lg mb-8 leading-relaxed whitespace-pre-wrap text-center text-lg">
-        {language === "en" ? passageEnglish : passageLocalized}
+        {passageEnglish}
       </p>
 
-      {/* ⭐ Retry UI */}
       {retry && (
         <div className="text-center mt-5">
           <p className="text-red-600 font-bold">
@@ -91,14 +88,15 @@ export default function MicReaderWrapper({
         </div>
       )}
 
-      {/* ⭐ MicReader */}
       {!retry && (
         <MicReader
           passageEnglish={passageEnglish}
           passageLocalized={passageLocalized}
-          language={language}
+          language="en"
           band={band}
           kidId={kidId}
+          siteId={siteId}
+          passageIndex={passageIndex}
           onComplete={handleComplete}
           mode="existing"
         />

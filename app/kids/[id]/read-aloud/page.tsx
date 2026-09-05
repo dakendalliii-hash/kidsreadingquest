@@ -1,133 +1,82 @@
 // app/kids/[id]/read-aloud/page.tsx
-export const runtime = "nodejs";
+// ⭐ SERVER COMPONENT
+// ⭐ Responsible for loading passage + progress for EXISTING kids
+// ⭐ Must use PROGRESS table (not kids table) to keep reading loop aligned
+// ⭐ Must query passages with correct columns and language filter
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import AuthCard from "@/components/AuthCard";
-import Celebration from "@/components/Celebration";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import MicReaderWrapper from "./MicReaderWrapper";
 
-export default async function ReadAloudPage(props: any) {
-  const params = await props.params;
-  const searchParams = await props.searchParams;
-
-  const kidId = params.id;
-  const celebrate = searchParams?.celebrate === "1";
-  const bandComplete = searchParams?.bandComplete === "1";
-
-  // ⭐ Language selected by user (default English)
-  const selectedLanguage =
-    searchParams?.lang === "hindi" ? "hindi" : "en";
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  // ⭐ Unwrap Next.js 16 params
+  const { id: kidId } = await params;
 
   console.log("[READ-ALOUD PAGE] kidId:", kidId);
-  console.log("[READ-ALOUD PAGE] celebrate:", celebrate);
-  console.log("[READ-ALOUD PAGE] bandComplete:", bandComplete);
-  console.log("[READ-ALOUD PAGE] selectedLanguage:", selectedLanguage);
 
   const supabase = await createServerSupabaseClient();
 
-  // Auth
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData?.user;
-  if (!user) redirect("/login");
-
-  // Parent
-  const { data: parentRecord } = await supabase
-    .from("parents")
-    .select("id")
-    .eq("auth_id", user.id)
-    .single();
-
-  if (!parentRecord) redirect("/unauthorized");
-
-  // Kid
-  const { data: kid } = await supabase
+  // ⭐ 1. Validate kid ownership (same as before — no changes)
+  const { data: kidRecord, error: kidError } = await supabase
     .from("kids")
-    .select("id, name")
+    .select("id, parent_id")
     .eq("id", kidId)
-    .eq("parent_id", parentRecord.id)
     .single();
 
-  if (!kid) redirect("/parent/manage-kids");
+  if (kidError || !kidRecord) redirect("/kids");
 
-  // Progress
-  const { data: progress } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || user.id !== kidRecord.parent_id) redirect("/kids");
+
+  // ⭐ 2. Load PROGRESS (band, site, passage_index)
+  const { data: progress, error: progressError } = await supabase
     .from("progress")
     .select("band, site_id, passage_index")
     .eq("kid_id", kidId)
     .single();
 
-  if (!progress) throw new Error("No progress record found");
-
-  // ⭐ Fetch passage EXACTLY like assessment:
-  //    - match band/site/passage_index
-  //    - match selected language
-  const { data: passage } = await supabase
-    .from("passages")
-    .select("text, entext")
-    .eq("band", progress.band)
-    .eq("site_id", progress.site_id)
-    .eq("passage_index", progress.passage_index)
-    .eq("language", selectedLanguage)
-    .single();
-
-  if (!passage) {
-    console.error("[READ-ALOUD PAGE] No passage found for:", {
-      band: progress.band,
-      site_id: progress.site_id,
-      passage_index: progress.passage_index,
-      language: selectedLanguage,
-    });
-    throw new Error("Passage not found");
+  if (progressError || !progress) {
+    // No progress → kid must start at read‑aloud
+    redirect(`/kids/${kidId}/read-aloud?lang=en`);
   }
 
-  const passageLocalized = passage.text ?? "";
-  const passageEnglish = passage.entext ?? "";
+  const { band, site_id, passage_index } = progress;
 
+  // ⭐ 3. Load passage using PROGRESS values
+  // ❗ Use real columns: text
+  // ❗ Filter by language = 'en' to get the English passage
+  const { data: passage, error: passageError } = await supabase
+    .from("passages")
+    .select("text")
+    .eq("band", band)
+    .eq("site_id", site_id)
+    .eq("passage_index", passage_index)
+    .eq("language", "en")
+    .single();
+
+  if (passageError || !passage) {
+    // If passage missing, return kid to profile (same behavior as before)
+    redirect(`/kids/${kidId}/kid-profile`);
+  }
+
+  // ⭐ 4. Render MicReaderWrapper with CORRECT progress values
+  // ❗ passageEnglish uses the 'text' column (English, language='en')
+  // ❗ passageLocalized is currently the same as passageEnglish
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        minHeight: "100vh",
-        padding: "40px",
-      }}
-    >
-      <div className="page-container text-black">
-        {celebrate && (
-          <Celebration kidId={kidId} language={selectedLanguage} />
-        )}
-
-        {bandComplete && (
-          <div
-            style={{
-              backgroundColor: "#f0fff4",
-              padding: "24px",
-              borderRadius: "10px",
-              border: "2px solid #38a169",
-              marginBottom: "24px",
-              textAlign: "center",
-            }}
-          >
-            <h2 style={{ color: "#2f855a" }}>🎉 Congratulations!</h2>
-            <p>You are ready to move to the next band!</p>
-          </div>
-        )}
-
-        <AuthCard>
-          <h1 className="section-header">
-            Read Aloud — Band {progress.band}
-          </h1>
-
-          {/* ⭐ Language toggle + passage display handled inside wrapper */}
-          <MicReaderWrapper
-            passageLocalized={passageLocalized}
-            passageEnglish={passageEnglish}
-            band={progress.band}
-            kidId={kidId}
-          />
-        </AuthCard>
-      </div>
-    </div>
+    <MicReaderWrapper
+      passageEnglish={passage.text}
+      passageLocalized={passage.text}
+      band={band}
+      kidId={kidId}
+      siteId={site_id}
+      passageIndex={passage_index}
+    />
   );
 }

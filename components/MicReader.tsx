@@ -8,14 +8,18 @@ export default function MicReader({
   kidId,
   language,
   band,
+  siteId,
+  passageIndex,
   onComplete,
   mode,
 }: {
   passageEnglish: string;
   passageLocalized: string;
   kidId: string;
-  language: "en" | "hindi";
+  language: "en";
   band: string;
+  siteId: number;
+  passageIndex: number;
   onComplete: (results: any) => void;
   mode: "assessment" | "existing";
 }) {
@@ -25,43 +29,30 @@ export default function MicReader({
 
   const recognitionRef = useRef<any>(null);
   const hasHandledTranscriptRef = useRef(false);
+  const hasCompletedRef = useRef(false);
 
   const ui = {
-    start: language === "hindi" ? "पढ़ना शुरू करें" : "Read Aloud",
-    listening: language === "hindi" ? "सुन रहा हूँ…" : "Listening…",
-    stop: language === "hindi" ? "पढ़ना रोकें" : "Stop Reading",
-    retry: language === "hindi" ? "फिर से कोशिश करें" : "Retry Microphone",
-    privacy:
-      language === "hindi"
-        ? "गोपनीयता के लिए ऑडियो हटाया गया।"
-        : "Audio deleted for privacy.",
-    micDenied:
-      language === "hindi"
-        ? "माइक्रोफ़ोन अनुमति अस्वीकृत।"
-        : "Microphone access denied.",
-    notSupported:
-      language === "hindi"
-        ? "यह ब्राउज़र वॉइस रिकग्निशन का समर्थन नहीं करता।"
-        : "Speech recognition is not supported.",
-    serverError:
-      language === "hindi"
-        ? "सर्वर त्रुटि।"
-        : "Server error.",
+    start: "Read Aloud",
+    listening: "Listening…",
+    stop: "Stop Reading",
+    retry: "Retry Microphone",
+    privacy: "Audio deleted for privacy.",
+    micDenied: "Microphone access denied.",
+    notSupported: "Speech recognition is not supported.",
+    serverError: "Server error.",
   };
 
-  // ⭐ Reset recognition whenever passage changes
   useEffect(() => {
     console.log("[MicReader] Resetting recognition for new passage");
 
     hasHandledTranscriptRef.current = false;
+    hasCompletedRef.current = false;
 
-    // Stop previous recognition
     try {
       recognitionRef.current?.stop();
     } catch (_) {}
     recognitionRef.current = null;
 
-    // ⭐ HARD mic release (fixes stuck red-dot)
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
@@ -82,7 +73,7 @@ export default function MicReader({
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = false;
-    recognition.lang = language === "hindi" ? "hi-IN" : "en-US";
+    recognition.lang = "en-US";
 
     let graceTimer: any = null;
 
@@ -106,26 +97,36 @@ export default function MicReader({
       console.log("[MicReader] Recognition error:", event.error);
       setErrorMessage("Microphone error: " + event.error);
       setIsListening(false);
+
+      onComplete({
+        metrics: null,
+        server: { fluencyPassed: false },
+      });
     };
 
     recognitionRef.current = recognition;
-  }, [passageEnglish, language]);
+  }, [passageEnglish]);
 
   async function handleTranscript(transcript: string) {
     console.log("[MicReader] handleTranscript fired with:", transcript);
 
     if (hasHandledTranscriptRef.current) {
       console.log("[MicReader] Duplicate transcript ignored");
+      setIsListening(false);
+
+      onComplete({
+        metrics: null,
+        server: { fluencyPassed: false },
+      });
+
       return;
     }
     hasHandledTranscriptRef.current = true;
 
-    // Stop recognition
     try {
       recognitionRef.current?.stop();
     } catch (_) {}
 
-    // ⭐ HARD mic release
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((t) => t.stop());
@@ -145,22 +146,29 @@ export default function MicReader({
         `[MicReader] Transcript too short (${spokenWords.length}/${passageWords.length})`
       );
 
+      setIsListening(false);
+
+      const shortMetrics = {
+        wpm: 0,
+        accuracy: 0,
+        errors: passageWords.length,
+        totalWords: passageWords.length,
+        totalSeconds: 10,
+        transcript,
+        mispronounced: passageWords.length,
+        skipped: 0,
+        inserted: 0,
+        repeated: 0,
+        band,
+        kidId,
+        language: "en",
+      };
+
       onComplete({
-        metrics: {
-          wpm: 0,
-          accuracy: 0,
-          errors: passageWords.length,
-          totalWords: passageWords.length,
-          totalSeconds: 0,
-          transcript: "",
-          band,
-          kidId,
-          language,
-        },
+        metrics: shortMetrics,
         server: { fluencyPassed: false },
       });
 
-      setIsListening(false);
       return;
     }
 
@@ -190,25 +198,34 @@ export default function MicReader({
       totalWords,
       totalSeconds,
       transcript,
+      mispronounced: errors,
+      skipped: 0,
+      inserted: 0,
+      repeated: 0,
       band,
       kidId,
-      language,
+      language: "en",
     };
 
     console.log("[MicReader] Local metrics:", metrics);
 
-    let serverResponse;
+    if (hasCompletedRef.current) {
+      console.log("[MicReader] Ignoring duplicate completion");
+      setIsListening(false);
+
+      onComplete({
+        metrics: null,
+        server: { fluencyPassed: false },
+      });
+
+      return;
+    }
+    hasCompletedRef.current = true;
+
+    let serverResponse = null;
 
     try {
-      if (mode === "assessment") {
-        const res = await fetch(`/kids/${kidId}/assessment/score`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ metrics, band, kidId }),
-        });
-
-        serverResponse = await res.json();
-      } else {
+      if (mode === "existing") {
         const res = await fetch(`/kids/${kidId}/read-aloud/api`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -216,10 +233,12 @@ export default function MicReader({
             transcript,
             passageEnglish,
             passageLocalized,
-            language,
+            language: "en",
             band,
             kidId,
             metrics,
+            siteId,
+            passageIndex,
           }),
         });
 
@@ -232,6 +251,11 @@ export default function MicReader({
     } catch (err) {
       console.error("[MicReader] Fetch error:", err);
       setErrorMessage(ui.serverError);
+
+      onComplete({
+        metrics,
+        server: { fluencyPassed: false },
+      });
     }
 
     setIsListening(false);
@@ -244,11 +268,17 @@ export default function MicReader({
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsListening(true);
       hasHandledTranscriptRef.current = false;
+      hasCompletedRef.current = false;
 
       recognitionRef.current?.start();
     } catch (err) {
       setErrorMessage(ui.micDenied);
       setIsListening(false);
+
+      onComplete({
+        metrics: null,
+        server: { fluencyPassed: false },
+      });
     }
   }
 
@@ -259,7 +289,6 @@ export default function MicReader({
       recognitionRef.current?.stop();
     } catch (_) {}
 
-    // ⭐ HARD mic release
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((t) => t.stop());

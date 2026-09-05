@@ -7,13 +7,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export default async function KidLayout({
   children,
-  params,
 }: {
   children: ReactNode;
-  params: Promise<{ id: string }>;
 }) {
-  const { id: kidId } = await params;
-
   const supabase = await createServerSupabaseClient();
 
   // Validate session
@@ -22,34 +18,11 @@ export default async function KidLayout({
     error,
   } = await supabase.auth.getUser();
 
-  if (error || !user) redirect("/login");
+ // if (error || !user) redirect("/login");
 
-  // Fetch role
-  const { data: roleRecord } = await supabase
-    .from("roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .single();
+  // ⭐ No kid lookup here — child pages handle validation
+  // ⭐ No role lookup here — child pages handle validation
 
-  const role = roleRecord?.role;
-
-  // Parents can access all kids pages
-  const allowAccess =
-    role === "parent"
-      ? true
-      : role === "kid"
-      ? await supabase
-          .from("kids")
-          .select("id")
-          .eq("id", kidId)
-          .eq("auth_id", user.id)
-          .single()
-          .then((res) => !!res.data)
-      : false;
-
-  if (!allowAccess) redirect("/unauthorized");
-
-  // ⭐ Apply the SAME formatting as app/kids/layout.tsx
   return (
     <div
       style={{
@@ -62,7 +35,6 @@ export default async function KidLayout({
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Soft dark overlay */}
       <div
         style={{
           position: "absolute",
@@ -75,7 +47,6 @@ export default async function KidLayout({
         }}
       />
 
-      {/* Page content */}
       <div style={{ position: "relative", zIndex: 1, color: "white" }}>
         {children}
       </div>

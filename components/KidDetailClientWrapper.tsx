@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import MicReader from "@/components/MicReader";
 import FormContainer from "@/components/FormContainer";
 import Celebration from "@/components/Celebration";
@@ -20,9 +21,9 @@ export default function KidDetailClientWrapper({
   siteId: number;
   passageIndex: number;
 }) {
-  /**
-   * ENGLISH ONLY
-   */
+  const router = useRouter();
+
+  // ⭐ ENGLISH ONLY
   const [language] = useState<"en">("en");
 
   const [currentPassage, setCurrentPassage] = useState(passageText);
@@ -35,11 +36,10 @@ export default function KidDetailClientWrapper({
   const [currentSiteId, setCurrentSiteId] = useState(siteId);
   const [currentPassageIndex, setCurrentPassageIndex] = useState(passageIndex);
 
-  // ⭐ Guard to prevent double advancement
-  const [hasAdvanced, setHasAdvanced] = useState(false);
-
-  // ⭐ NEW: retry counter to force MicReader remount
+  // ⭐ Guards
   const [retryCount, setRetryCount] = useState(0);
+  const [hasCompletedOnce, setHasCompletedOnce] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   /**
    * Fetch ENGLISH passage only.
@@ -55,14 +55,19 @@ export default function KidDetailClientWrapper({
           band: newBand,
           siteId: newSiteId,
           passageIndex: newIndex,
-          language: "en",
+          selectedLanguage: "en",
         }),
       });
 
       const data = await res.json();
-      if (res.ok && data.text) {
-        setCurrentPassage(data.text);
+
+      if (!data.text) {
+        console.error("[Wrapper] No passage text found:", data);
+        setFailureMessage("Passage not found. Please try again later.");
+        return;
       }
+
+      setCurrentPassage(data.text);
     } finally {
       setLoadingPassage(false);
     }
@@ -74,6 +79,8 @@ export default function KidDetailClientWrapper({
   async function fetchUpdatedProgress() {
     const res = await fetch(`/kids/${kidId}/reading/api/progress`);
     const data = await res.json();
+
+    console.log("[Wrapper] Updated progress:", data);
 
     setCurrentBand(data.band);
     setCurrentSiteId(data.site_id);
@@ -88,50 +95,80 @@ export default function KidDetailClientWrapper({
   async function handleComplete(results: any) {
     console.log("[Wrapper] handleComplete fired");
 
-    // Always clear old failure message
+    if (hasCompletedOnce) {
+      console.log("[Wrapper] Ignoring duplicate onComplete");
+      return;
+    }
+    setHasCompletedOnce(true);
+
     setFailureMessage(null);
 
     const { metrics, server } = results;
     const { accuracy, wpm } = metrics;
 
-    // Reset guard immediately so wrapper can respond to next read
-    setHasAdvanced(false);
+    // ⭐ Store workout attempt locally
+    try {
+      const workout = {
+        metrics,
+        comprehension: null,
+        vocabulary: null,
+        attemptType: "workout",
+        band: currentBand,
+        siteId: currentSiteId,
+        passageIndex: currentPassageIndex,
+      };
+      localStorage.setItem("workout", JSON.stringify(workout));
+      console.log("[Wrapper] Stored workout object:", workout);
+    } catch (err) {
+      console.error("[Wrapper] Failed to store workout:", err);
+    }
 
-    // Backend is the source of truth
-    if (server && server.fluencyPassed === true) {
+    // ⭐ Server authoritative pass/fail
+    if (server?.fluencyPassed === true) {
+      console.log("[Wrapper] Server fluencyPassed === true");
+      if (redirecting) return;
+      setRedirecting(true);
+
       setShowCelebration(true);
 
+      // ⭐ Redirect AFTER celebration
       setTimeout(() => {
-        fetchUpdatedProgress();
-        setShowCelebration(false);
+        console.log("[Wrapper] Redirecting to comprehension");
+        router.push(`/kids/${kidId}/reading/comprehension`);
       }, 5000);
 
       return;
     }
 
-    // ⭐ Backend says failure → force MicReader remount
-    if (server && server.fluencyPassed === false) {
+    if (server?.fluencyPassed === false) {
+      console.log("[Wrapper] Server fluencyPassed === false");
       setFailureMessage("Fluency not high enough. Try again!");
-
-      // ⭐ Force MicReader to fully reset
       setRetryCount((c) => c + 1);
-
+      setHasCompletedOnce(false);
       return;
     }
 
-    // Local fallback (optional)
+    // ⭐ Local fallback (if server missing fluencyPassed)
     const acceptable = accuracy >= 90 && wpm >= 40;
+    console.log("[Wrapper] Local fallback acceptable:", acceptable);
 
     if (acceptable) {
+      if (redirecting) return;
+      setRedirecting(true);
       setShowCelebration(true);
 
       setTimeout(() => {
-        fetchUpdatedProgress();
-        setShowCelebration(false);
+        console.log("[Wrapper] Redirecting to comprehension (local fallback)");
+        router.push(`/kids/${kidId}/reading/comprehension`);
       }, 5000);
 
       return;
     }
+
+    // ⭐ Failure fallback
+    setFailureMessage("Fluency not high enough. Try again!");
+    setRetryCount((c) => c + 1);
+    setHasCompletedOnce(false);
   }
 
   return (
@@ -149,9 +186,7 @@ export default function KidDetailClientWrapper({
         }}
       >
         {/* Celebration Overlay */}
-        {showCelebration && (
-          <Celebration kidId={kidId} language="en" />
-        )}
+        {showCelebration && <Celebration kidId={kidId} language="en" />}
 
         {/* Passage Display */}
         <div
@@ -175,12 +210,14 @@ export default function KidDetailClientWrapper({
         {/* MicReader */}
         <div style={{ display: "flex", justifyContent: "center" }}>
           <MicReader
-            key={`${currentPassageIndex}-${retryCount}`}  // ⭐ forces full reset
+            key={retryCount}
             passageEnglish={currentPassage}
             passageLocalized={currentPassage}
             kidId={kidId}
-            language="en"
+            language={language}
             band={currentBand}
+            siteId={siteId}
+            passageIndex={passageIndex}
             onComplete={handleComplete}
             mode="existing"
           />

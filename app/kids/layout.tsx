@@ -26,6 +26,7 @@ export default function KidsLayout({ children }: { children: ReactNode }) {
         }}
       />
 
+
       {/* Page content */}
       <div style={{ position: "relative", zIndex: 1, color: "white" }}>
         {children}
