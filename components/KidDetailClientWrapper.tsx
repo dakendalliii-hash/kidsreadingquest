@@ -74,22 +74,6 @@ export default function KidDetailClientWrapper({
   }
 
   /**
-   * Fetch UPDATED progress (server already advanced it).
-   */
-  async function fetchUpdatedProgress() {
-    const res = await fetch(`/kids/${kidId}/reading/api/progress`);
-    const data = await res.json();
-
-    console.log("[Wrapper] Updated progress:", data);
-
-    setCurrentBand(data.band);
-    setCurrentSiteId(data.site_id);
-    setCurrentPassageIndex(data.passage_index);
-
-    await fetchPassage(data.band, data.site_id, data.passage_index);
-  }
-
-  /**
    * MicReader completion handler
    */
   async function handleComplete(results: any) {
@@ -216,8 +200,8 @@ export default function KidDetailClientWrapper({
             kidId={kidId}
             language={language}
             band={currentBand}
-            siteId={siteId}
-            passageIndex={passageIndex}
+            siteId={currentSiteId}
+            passageIndex={currentPassageIndex}
             onComplete={handleComplete}
             mode="existing"
           />

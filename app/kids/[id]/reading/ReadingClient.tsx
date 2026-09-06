@@ -7,8 +7,8 @@ import KidDetailClientWrapper from "@/components/KidDetailClientWrapper";
 /**
  * ReadingClient (English‑only version)
  *
- * This component loads the kid's current progress and the correct English passage.
- * Hindi support is commented out per project directive.
+ * Loads the kid's current progress OR override progress from redirect params,
+ * then loads the correct English passage.
  */
 
 export default function ReadingClient({
@@ -20,9 +20,14 @@ export default function ReadingClient({
 
   // Force English only
   const lang: "en" = "en";
-  // const lang = (searchParams.get("lang") ?? "en") as "en" | "hindi"; // ❌ commented out
 
+  // Celebration flag
   const celebrate = searchParams.get("celebrate") === "1";
+
+  // ⭐ NEW: Override values from redirect
+  const overrideBand = searchParams.get("band");
+  const overrideSiteId = searchParams.get("siteId");
+  const overridePassageIndex = searchParams.get("passageIndex");
 
   // State for the passage
   const [loading, setLoading] = useState(true);
@@ -33,7 +38,7 @@ export default function ReadingClient({
 
   /**
    * Load the kid's current progress + English passage text.
-   * This runs on mount and after redirect from read‑aloud.
+   * This runs on mount and after redirect from results → next passage.
    */
   useEffect(() => {
     async function loadCurrentPassage() {
@@ -44,22 +49,27 @@ export default function ReadingClient({
         const progressRes = await fetch(`/kids/${kidId}/reading/api/progress`);
         const progress = await progressRes.json();
 
-        setBand(progress.band);
-        setSiteId(progress.site_id);
-        setPassageIndex(progress.passage_index);
+        // ⭐ Apply override params if present
+        const effectiveBand = overrideBand || progress.band;
+        const effectiveSiteId = Number(overrideSiteId) || progress.site_id;
+        const effectivePassageIndex =
+          Number(overridePassageIndex) || progress.passage_index;
 
-        // 2. Fetch English passage for current progress
+        setBand(effectiveBand);
+        setSiteId(effectiveSiteId);
+        setPassageIndex(effectivePassageIndex);
+
+        // 2. Fetch English passage for effective progress
         const passageRes = await fetch(
           `/kids/${kidId}/reading/api/passage`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              band: progress.band,
-              siteId: progress.site_id,
-              passageIndex: progress.passage_index,
+              band: effectiveBand,
+              siteId: effectiveSiteId,
+              passageIndex: effectivePassageIndex,
               language: "en", // English only
-              // language: lang, // ❌ commented out
             }),
           }
         );
@@ -72,13 +82,12 @@ export default function ReadingClient({
     }
 
     loadCurrentPassage();
-  }, [kidId]);
+  }, [kidId, overrideBand, overrideSiteId, overridePassageIndex]);
 
   if (loading) {
     return (
       <div style={{ padding: "40px", textAlign: "center", color: "black" }}>
         Loading next passage...
-        {/* {lang === "hindi" ? "अगला पैसेज लोड हो रहा है..." : "Loading next passage..."} */}
       </div>
     );
   }
@@ -87,8 +96,7 @@ export default function ReadingClient({
     <KidDetailClientWrapper
       kidId={kidId}
       passageText={passageText}
-      initialLanguage="en" // English only
-      // initialLanguage={lang} // ❌ commented out
+      initialLanguage="en"
       band={band}
       siteId={siteId}
       passageIndex={passageIndex}

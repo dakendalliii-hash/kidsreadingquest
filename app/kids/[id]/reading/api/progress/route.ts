@@ -6,17 +6,26 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id: kidId } = await context.params;
+
   const supabase = await createServerSupabaseClient();
 
-  const { data, error } = await supabase
+  // ⭐ Load current progress
+  const { data: progress, error } = await supabase
     .from("progress")
     .select("band, site_id, passage_index")
     .eq("kid_id", kidId)
     .single();
 
-  if (error || !data) {
-    return NextResponse.json({ error: "Progress not found" }, { status: 404 });
+  if (error || !progress) {
+    return NextResponse.json(
+      { error: "Progress not found" },
+      { status: 404 }
+    );
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json({
+    band: progress.band,
+    site_id: progress.site_id,
+    passage_index: progress.passage_index,
+  });
 }

@@ -159,6 +159,58 @@ export default function ReadingResultsClient({
           </pre>
         </div>
       )}
+<div style={{ marginTop: "40px", display: "flex", gap: "20px" }}>
+<button
+  onClick={async () => {
+    const res = await fetch(`/kids/${kidId}/reading/api/progress/advance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: "en" }),
+    });
+
+    const next = await res.json();
+
+    // ✅ Fallback if redirect missing
+    const redirectUrl =
+      next?.redirect ||
+      `/kids/${kidId}/reading?band=${band}&siteId=${siteId}&passageIndex=${passageIndex}`;
+
+    window.location.href = redirectUrl;
+  }}
+  style={{
+    backgroundColor: "#4CAF50",
+    color: "white",
+    padding: "12px 24px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "bold",
+    fontSize: "1rem",
+    flex: 1,
+  }}
+>
+  Next Passage
+</button>
+
+  <button
+    onClick={() => {
+      window.location.href = "/parent";
+    }}
+    style={{
+      backgroundColor: "#ccc",
+      color: "black",
+      padding: "12px 24px",
+      borderRadius: "8px",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: "bold",
+      fontSize: "1rem",
+      flex: 1,
+    }}
+  >
+    End Session
+  </button>
+</div>
     </div>
   );
 }
