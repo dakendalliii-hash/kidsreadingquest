@@ -64,7 +64,7 @@ export async function POST(
   const maxPassageIndex = maxPassageRow.passage_index;
   const maxSiteId = maxSiteRow.site_id;
   const bandOrder = bandList.map((b) => b.name);
-  const currentBandIndex = bandOrder.indexOf(name);
+  const currentBandIndex = bandOrder.indexOf(band);
   const nextBand =
     bandOrder[currentBandIndex + 1] ?? bandOrder[currentBandIndex];
 
