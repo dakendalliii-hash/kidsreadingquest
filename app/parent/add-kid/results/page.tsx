@@ -1,11 +1,16 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import { logError } from "@/lib/logging/logError";
+
 export default async function AddKidResultsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
+
+try {
+
   // Next.js 16 requires awaiting searchParams
   const params = await searchParams;
 
@@ -105,4 +110,10 @@ export default async function AddKidResultsPage({
       </div>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/parent/add-kid/results", error);
+    throw error;
+  }
+
 }

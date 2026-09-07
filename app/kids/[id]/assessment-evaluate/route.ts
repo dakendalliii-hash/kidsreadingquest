@@ -1,5 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +71,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ passed: true }, { status: 200 });
   } catch (err) {
     console.error("assessment-evaluate error:", err);
+  await logError("advance route", err);
+
     return NextResponse.json(
       { passed: false, error: "Server error" },
       { status: 500 }

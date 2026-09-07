@@ -3,9 +3,13 @@ export const dynamic = "force-dynamic";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function AuthCallbackPage() {
   const supabase = await createServerSupabaseClient();
+
+try { 
 
   // 1️⃣ Auth check
   const {
@@ -54,4 +58,10 @@ export default async function AuthCallbackPage() {
   // 4️⃣ Redirect to Add Kid
   console.log("Callback complete — redirecting to /parent/add-kid");
   redirect("/parent/add-kid");
+
+  } catch (error) {
+    await logError("SSR: app/auth/callback", error);
+    throw error;
+  }
+
 }

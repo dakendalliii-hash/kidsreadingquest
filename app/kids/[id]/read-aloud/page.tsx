@@ -7,12 +7,17 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import MicReaderWrapper from "./MicReaderWrapper";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+
+try {
+
   // ⭐ Unwrap Next.js 16 params
   const { id: kidId } = await params;
 
@@ -79,4 +84,10 @@ export default async function Page({
       passageIndex={passage_index}
     />
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/read-aloud", error);
+    throw error;
+  }
+
 }

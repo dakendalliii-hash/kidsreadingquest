@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import AuthCard from "@/components/AuthCard";
 import PaymentClient from "./PaymentClient";
+import { logError } from "@/lib/logging/logError";
+
 
 // =========================================================
 // SERVER ACTION — UPDATE PLAN TYPE
@@ -39,6 +41,9 @@ async function updatePlanType(formData: FormData) {
 // SSR PAGE
 // =========================================================
 export default async function PaymentPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   // 1️⃣ Auth check
@@ -64,4 +69,10 @@ export default async function PaymentPage() {
       founderFull={founderFull}
     />
   );
+
+  } catch (error) {
+    await logError("SSR: app/(public)/payment", error);
+    throw error;
+  }
+
 }

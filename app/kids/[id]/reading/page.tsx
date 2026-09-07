@@ -5,12 +5,17 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AuthCard from "@/components/AuthCard";
 import ReadingClient from "./ReadingClient";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function KidReadingPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+
+try {
+
   const { id: kidId } = await params;
   console.log("[READING PAGE] kidId:", kidId);
 
@@ -93,4 +98,10 @@ export default async function KidReadingPage({
       </div>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/reading/page", error);
+    throw error;
+  }
+
 }

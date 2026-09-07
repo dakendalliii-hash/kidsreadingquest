@@ -4,11 +4,17 @@ export const runtime = "nodejs";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ChoosePathClient from "./ChoosePathClient";
+import { logError } from "@/lib/logging/logError";
+
+
 
 // =========================================================
 // SSR PAGE — NO DATABASE WRITES
 // =========================================================
 export default async function ChoosePathPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   // 1️⃣ Auth check
@@ -33,6 +39,11 @@ export default async function ChoosePathPage() {
 
   if (!kids || kids.length === 0) {
     redirect("/parent/manage-kids/add");
+  }
+
+  } catch (error) {
+    await logError("SSR: app/(public)/choose-path", error);
+    throw error;
   }
 
   return <ChoosePathClient />;

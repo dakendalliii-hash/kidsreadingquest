@@ -3,6 +3,8 @@ export const runtime = "nodejs";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
+import { logError } from "@/lib/logging/logError";
+
 
 /* ============================================================
    SERVER ACTION — FIXED SIGNATURE + SSR REDIRECT
@@ -42,6 +44,9 @@ async function handleReset(formData: FormData) {
 export default async function ForgotPasswordPage(
   { searchParams }: { searchParams: Promise<Record<string, string | undefined>> }
 ) {
+
+try {
+
   const params = await searchParams;
   const status = params.status;
 
@@ -167,4 +172,10 @@ export default async function ForgotPasswordPage(
       </FormContainer>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/forgot-password", error);
+    throw error;
+  }
+
 }

@@ -4,8 +4,13 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
 import HelpNavigation from "@/components/HelpNavigation"; // ✅ client component
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function MicrophoneHelpPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   // Require login
@@ -117,4 +122,10 @@ export default async function MicrophoneHelpPage() {
       </FormContainer>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/help/microphone", error);
+    throw error;
+  }
+
 }

@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import KidDetailClientWrapper from "@/components/KidDetailClientWrapper";
+import { logError } from "@/lib/logging/logError";
+
 
 // =========================================================
 // EXISTING KID ENTRY POINT
@@ -15,6 +17,9 @@ export default async function KidDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+
+try {
+
   const { id: kidId } = await params;
 
   return (
@@ -27,4 +32,10 @@ export default async function KidDetailPage({
       passageIndex={0}        // wrapper fetches index
     />
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/page", error);
+    throw error;
+  }
+
 }

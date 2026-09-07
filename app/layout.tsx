@@ -5,8 +5,13 @@ import "./globals.css";
 import { ReactNode } from "react";
 import NavBarWrapper from "@/components/NavBarWrapper";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   const { data: userData } = await supabase.auth.getUser();
@@ -76,7 +81,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             }}
           >
             <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "bold" }}>
-              Welcome to Kids Read Quest
+              Welcome!
             </h1>
           </div>
 
@@ -87,4 +92,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       </body>
     </html>
   );
+
+  } catch (error) {
+    await logError("SSR: app/layout", error);
+    throw error;
+  }
+
 }

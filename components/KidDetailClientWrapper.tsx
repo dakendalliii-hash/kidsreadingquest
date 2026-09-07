@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import MicReader from "@/components/MicReader";
 import FormContainer from "@/components/FormContainer";
 import Celebration from "@/components/Celebration";
+import { logError } from "@/lib/logging/logError";
+import { redirectOnError } from "@/lib/logging/redirectOnError";
+
 
 export default function KidDetailClientWrapper({
   passageText,
@@ -102,9 +105,12 @@ export default function KidDetailClientWrapper({
         passageIndex: currentPassageIndex,
       };
       localStorage.setItem("workout", JSON.stringify(workout));
-      console.log("[Wrapper] Stored workout object:", workout);
+      console.log("[Kid Detail Client Wrapper] Stored workout object:", workout);
     } catch (err) {
       console.error("[Wrapper] Failed to store workout:", err);
+  await logError("Kid Detail Client Wrapper", err);
+  redirectOnError();
+
     }
 
     // ⭐ Server authoritative pass/fail

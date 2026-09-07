@@ -2,8 +2,13 @@ export const runtime = "nodejs";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function ParentDashboardPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   const { data: userData } = await supabase.auth.getUser();
@@ -134,4 +139,10 @@ export default async function ParentDashboardPage() {
       </div>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/parent/page", error);
+    throw error;
+  }
+
 }

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { logError } from "@/lib/logging/logError";
+import { redirectOnError } from "@/lib/logging/redirectOnError";
+
 
 export default function MicReader({
   passageEnglish,
@@ -251,6 +254,9 @@ export default function MicReader({
     } catch (err) {
       console.error("[MicReader] Fetch error:", err);
       setErrorMessage(ui.serverError);
+  await logError("MicReader", err);
+  redirectOnError();
+
 
       onComplete({
         metrics,
@@ -274,6 +280,9 @@ export default function MicReader({
     } catch (err) {
       setErrorMessage(ui.micDenied);
       setIsListening(false);
+  await logError("MicReader", err);
+  redirectOnError();
+
 
       onComplete({
         metrics: null,

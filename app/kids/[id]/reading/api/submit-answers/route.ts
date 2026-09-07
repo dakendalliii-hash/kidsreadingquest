@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export async function POST(request: NextRequest, context: any) {
   // Next.js 16 bug workaround: params is inferred as Promise<{ id: string }>
@@ -66,6 +68,8 @@ export async function POST(request: NextRequest, context: any) {
     });
   } catch (err) {
     console.error("[SUBMIT ANSWERS API] Unexpected error:", err);
+  await logError("advance route", err);
+
     return NextResponse.json(
       { error: "Unexpected server error" },
       { status: 500 }

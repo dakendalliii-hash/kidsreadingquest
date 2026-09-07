@@ -5,10 +5,15 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import AssessmentClientShell from "@/components/AssessmentClientShell";
 import FormContainer from "@/components/FormContainer";
 import AssessmentClientWrapper from "@/components/AssessmentClientWrapper";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function AssessmentPage(
   { params }: { params: Promise<{ id: string }> }
 ) {
+
+try {
+
   const { id: kidId } = await params;
 
   const supabase = await createServerSupabaseClient();
@@ -129,4 +134,10 @@ return (
     </div>
   </div>
 );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/assessment", error);
+    throw error;
+  }
+
 }

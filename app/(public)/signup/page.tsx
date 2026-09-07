@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import FormContainer from "@/components/FormContainer";
+import { logError } from "@/lib/logging/logError";
+
 
 async function handleSignUp(formData: FormData) {
   "use server";
@@ -64,6 +66,9 @@ export default async function SignUpPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+
+try { 
+
   const params = await searchParams;
 
   const errorMessage = params?.error;
@@ -248,4 +253,10 @@ export default async function SignUpPage({
       </FormContainer>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/(public)/signup", error);
+    throw error;
+  }
+
 }

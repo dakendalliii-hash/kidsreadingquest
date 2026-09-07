@@ -5,8 +5,13 @@ import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import NavBarWrapper from "@/components/NavBarWrapper";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function ParentLayout({ children }: { children: ReactNode }) {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -31,4 +36,10 @@ export default async function ParentLayout({ children }: { children: ReactNode }
       {children}
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/parent/layout", error);
+    throw error;
+  }
+
 }

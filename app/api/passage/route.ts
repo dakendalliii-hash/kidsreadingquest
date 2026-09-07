@@ -1,5 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +42,8 @@ export async function POST(req: Request) {
     );
   } catch (err) {
     console.error("passage route error:", err);
+  await logError("advance route", err);
+
     return NextResponse.json(
       { error: "Server error" },
       { status: 500 }

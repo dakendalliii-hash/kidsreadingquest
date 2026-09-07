@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export async function POST(request: Request) {
   try {
@@ -98,6 +100,8 @@ export async function POST(request: Request) {
     return NextResponse.redirect(redirectUrl);
   } catch (err) {
     console.error("Unhandled route error:", err);
+  await logError("assessment start route", err);
+
     return NextResponse.redirect(new URL("/assessment?error=server", request.url));
   }
 }

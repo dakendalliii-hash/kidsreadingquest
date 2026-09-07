@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 import FormContainer from "@/components/FormContainer";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { logError } from "@/lib/logging/logError";
+
 
 async function handleConfirmationReceived() {
   "use server";
@@ -22,6 +24,9 @@ async function handleConfirmationReceived() {
 }
 
 export default async function SignupConfirmPage() {
+
+try {
+
   return (
     <div
       style={{
@@ -102,4 +107,10 @@ export default async function SignupConfirmPage() {
       </FormContainer>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/(public)/signup/confirm", error);
+    throw error;
+  }
+
 }

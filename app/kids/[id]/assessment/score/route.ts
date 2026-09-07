@@ -4,6 +4,8 @@
 // =========================================================
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export async function POST(request: Request) {
   try {
@@ -115,6 +117,7 @@ console.log("RPC payload:", {
     );
   } catch (err) {
     console.error("Assessment score error:", err);
+  await logError("assessment score route", err);
 
     return new Response(
       JSON.stringify({

@@ -3,8 +3,13 @@ export const runtime = "nodejs";
 
 import { getAuthState } from "@/lib/auth/getAuthState";
 import Link from "next/link";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function UnauthorizedPage() {
+
+try {
+
   const { isLoggedIn } = await getAuthState();
 
   // Dynamic home route based on login state
@@ -63,4 +68,10 @@ export default async function UnauthorizedPage() {
 </Link>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/unauthorized", error);
+    throw error;
+  }
+
 }

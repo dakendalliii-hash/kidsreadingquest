@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import ReadingComprehensionClient from "./ReadingComprehensionClient";
+import { logError } from "@/lib/logging/logError";
+
 
 function generateComprehensionQuestions(passageText: string) {
   const sentences = passageText
@@ -49,6 +51,9 @@ export default async function Page({
 }: {
   params: Promise<{ id: string }>;
 }) {
+
+try {
+
   // ⭐ Next.js 16 param unwrapping
   const { id: kidId } = await params;
 
@@ -129,4 +134,10 @@ if (fluencyAttempt.fluency_passed === false) {
       questions={questionsData}
     />
   );
+
+  } catch (error) {
+    await logError("SSR: kid-profile", error);
+    throw error;
+  }
+
 }

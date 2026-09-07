@@ -4,12 +4,17 @@ export const revalidate = 0;
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function KidLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   // Validate session
@@ -52,4 +57,10 @@ export default async function KidLayout({
       </div>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/layout", error);
+    throw error;
+  }
+
 }

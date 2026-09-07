@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +28,7 @@ export async function POST(
     // ⭐ Compute fluency
     const accuracy = metrics?.accuracy ?? 0;
     const wpm = metrics?.wpm ?? 0;
-    const fluencyPassed = accuracy >= 90 && wpm >= 40;
+    const fluencyPassed = accuracy >= 80 && wpm >= 40;
 
     // ⭐ Load previous metrics snapshot
     const { data: lastAttempt } = await supabase
@@ -93,6 +95,8 @@ export async function POST(
     return NextResponse.json({ success: true, fluencyPassed });
   } catch (err) {
     console.error("❌ Fluency API error:", err);
+  await logError("advance route", err);
+
     return NextResponse.json(
       { success: false, error: "Server error" },
       { status: 500 }

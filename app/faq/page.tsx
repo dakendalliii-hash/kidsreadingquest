@@ -2,8 +2,13 @@ export const runtime = "nodejs";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import FormContainer from "@/components/FormContainer";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function FAQPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   const { data: faqs, error } = await supabase
@@ -87,4 +92,10 @@ export default async function FAQPage() {
       </FormContainer>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/faq", error);
+    throw error;
+  }
+
 }

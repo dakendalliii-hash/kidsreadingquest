@@ -2,12 +2,17 @@
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import ReadingResultsClient from "./ReadingResultsClient";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+
+try {
+
   // ⭐ Next.js 16 param unwrapping
   const { id: kidId } = await params;
 
@@ -59,4 +64,10 @@ export default async function Page({
       vocabularyAttempt={latestAttempt}
     />
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/reading/results", error);
+    throw error;
+  }
+
 }

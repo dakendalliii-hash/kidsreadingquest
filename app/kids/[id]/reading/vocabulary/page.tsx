@@ -2,6 +2,8 @@
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import ReadingVocabularyClient from "./ReadingVocabularyClient";
+import { logError } from "@/lib/logging/logError";
+
 
 // ⭐ Generate vocabulary questions dynamically
 function generateVocabularyQuestions(passageText: string) {
@@ -46,6 +48,9 @@ export default async function Page({
 }: {
   params: Promise<{ id: string }>;
 }) {
+
+try { 
+
   // ⭐ Next.js 16 param unwrapping
   const { id: kidId } = await params;
 
@@ -104,4 +109,10 @@ export default async function Page({
       questions={questionsData}
     />
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/reading/vocabulary", error);
+    throw error;
+  }
+
 }

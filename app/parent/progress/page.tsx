@@ -7,6 +7,8 @@ export const runtime = "nodejs";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
+import { logError } from "@/lib/logging/logError";
+
 
 // =========================================================
 // SECTION 2 — Types
@@ -26,6 +28,9 @@ interface ParentKidProgress {
 // SECTION 3 — Page Component
 // =========================================================
 export default async function ParentProgressReportPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   // ------------------------------
@@ -239,4 +244,10 @@ export default async function ParentProgressReportPage() {
       </div>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/parent/progress", error);
+    throw error;
+  }
+
 }

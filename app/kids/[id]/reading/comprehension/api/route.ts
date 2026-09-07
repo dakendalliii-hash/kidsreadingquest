@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export async function POST(
   request: NextRequest,
@@ -96,6 +98,8 @@ export async function POST(
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("❌ Comprehension API error:", err);
+  await logError("advance route", err);
+
     return NextResponse.json(
       { success: false, error: "Server error" },
       { status: 500 }

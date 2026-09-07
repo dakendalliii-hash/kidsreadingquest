@@ -4,11 +4,16 @@ export const runtime = "nodejs";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProcessingClient from "./ProcessingClient";
+import { logError } from "@/lib/logging/logError";
+
 
 // =========================================================
 // SSR PAGE — NO DATABASE WRITES
 // =========================================================
 export default async function AssessmentProcessingPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   // 1️⃣ Auth check
@@ -36,4 +41,10 @@ export default async function AssessmentProcessingPage() {
   }
 
   return <ProcessingClient />;
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/assessment/processing", error);
+    throw error;
+  }
+
 }

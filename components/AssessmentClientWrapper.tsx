@@ -3,6 +3,9 @@
 import { useState } from "react";
 import MicReader from "@/components/MicReader";
 import FormContainer from "@/components/FormContainer";
+import { logError } from "@/lib/logging/logError";
+import { redirectOnError } from "@/lib/logging/redirectOnError";
+
 
 export default function AssessmentClientWrapper({
   kidId,
@@ -73,6 +76,9 @@ export default function AssessmentClientWrapper({
       reason = data.reason ?? "";
     } catch (err) {
       console.error("Score route error:", err);
+  await logError("Assessment Client Wrapper", err);
+  redirectOnError();
+
     }
 
     // Safe numeric defaults

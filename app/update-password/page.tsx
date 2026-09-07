@@ -3,6 +3,8 @@ export const runtime = "nodejs";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
+import { logError } from "@/lib/logging/logError";
+
 
 /* ============================================================
    SERVER ACTION — FIXED SIGNATURE
@@ -41,6 +43,9 @@ async function handleUpdate(formData: FormData) {
 export default async function UpdatePasswordPage(
   { searchParams }: { searchParams: Promise<Record<string, string | undefined>> }
 ) {
+
+try {
+
   const params = await searchParams;
   const code = params.code;
   const success = params.success === "true";
@@ -183,4 +188,10 @@ export default async function UpdatePasswordPage(
       </FormContainer>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/update-password", error);
+    throw error;
+  }
+
 }

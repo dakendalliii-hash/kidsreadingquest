@@ -7,8 +7,13 @@ import { createServerSupabaseClient } from "../../../lib/supabase/server";
 import { redirect } from "next/navigation";
 import ManageKidsClient from "./ManageKidsClient";
 import { revalidatePath } from "next/cache";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function ManageKidsPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -155,4 +160,10 @@ export default async function ManageKidsPage() {
       updateKid={updateKid}
     />
   );
+
+  } catch (error) {
+    await logError("SSR: app/parent/manage-kids", error);
+    throw error;
+  }
+
 }

@@ -12,6 +12,8 @@
 //   - No database writes occur in this file (display-only).
 // ============================================================================
 
+import { logError } from "@/lib/logging/logError";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -31,6 +33,9 @@ export default async function AssessmentResultsPage({
   // Extract all assessment metrics from query parameters.
   // These values were appended by the AssessmentClient after scoring.
   // --------------------------------------------------------------------------
+
+try {
+
   const query = await searchParams;
 
   // Core reading metrics
@@ -162,4 +167,10 @@ export default async function AssessmentResultsPage({
       </div>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/assessment/results", error);
+    throw error;
+  }
+
 }

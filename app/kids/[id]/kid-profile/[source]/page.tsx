@@ -5,12 +5,17 @@
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function KidProfilePage({
   params,
 }: {
   params: Promise<{ id: string; source: string }>;
 }) {
+
+try {
+
   const { id: kidId, source } = await params;
 
 console.log("KidProfile params:", { id: kidId, source });
@@ -131,4 +136,10 @@ console.log("KidProfile params:", { id: kidId, source });
       </div>
     </main>
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/kid-profile", error);
+    throw error;
+  }
+
 }

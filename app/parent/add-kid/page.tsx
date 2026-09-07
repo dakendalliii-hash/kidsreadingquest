@@ -5,8 +5,13 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import FormContainer from "@/components/FormContainer";
 import ActionButton from "@/components/ActionButton";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function AddKidPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   // Auth check
@@ -102,4 +107,10 @@ export default async function AddKidPage() {
       </FormContainer>
     </div>
   );
+
+  } catch (error) {
+    await logError("SSR: app/parent/add-kid", error);
+    throw error;
+  }
+
 }

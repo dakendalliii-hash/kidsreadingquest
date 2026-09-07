@@ -4,9 +4,13 @@ export const revalidate = 0;
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const supabase = await createServerSupabaseClient();
+
+try {
 
   const {
     data: { user },
@@ -24,4 +28,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   if (roleRecord?.role !== "admin") redirect("/unauthorized");
 
   return <div>{children}</div>;
+
+  } catch (error) {
+    await logError("SSR: app/admin", error);
+    throw error;
+  }
+
 }

@@ -4,8 +4,13 @@ export const runtime = "nodejs";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ResultsClient from "./ResultsClient";
+import { logError } from "@/lib/logging/logError";
+
 
 export default async function FitnessAssessmentResultsPage() {
+
+try {
+
   const supabase = await createServerSupabaseClient();
 
   // 1️⃣ Auth check
@@ -72,4 +77,10 @@ export default async function FitnessAssessmentResultsPage() {
       score={score}
     />
   );
+
+  } catch (error) {
+    await logError("SSR: app/kids/[id]/assessment/fitness/results", error);
+    throw error;
+  }
+
 }
