@@ -75,6 +75,26 @@ export async function POST(request: Request) {
     // ---------------------------------------------
     const supabase = await createServerSupabaseClient();
 
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+if (!user) {
+  return new Response(
+    JSON.stringify({
+      placement: "",
+      reason: "Not authenticated.",
+    }),
+    {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+}
+
+const parentAuthId = user.id;
+
+
 console.log("RPC payload:", {
   p_kid_id: kidId,
   p_band: placement,
@@ -85,18 +105,23 @@ console.log("RPC payload:", {
   p_fluency_passed: true
 });
 
-    const { error: rpcError } = await supabase.rpc(
-      "add_kid_reading_attempts",
-      {
-        p_kid_id: kidId,
-        p_band: placement,
-        p_site_id: 0,          // assessment → not tied to site passages
-        p_passage_index: 0,    // assessment → not tied to passage index
-        p_attempt_type: "assessment",
-        p_metrics: metricsJson,
-        p_fluency_passed: true,
-      }
-    );
+const { error: rpcError } = await supabase.rpc(
+  "add_kid_reading_attempts",
+  {
+    p_attempt_type: "assessment",
+    p_band: placement,
+    p_fluency_passed: true,
+    p_kid_id: kidId,
+    p_parent_id: parentAuthId,
+    p_metrics: metricsJson,
+    p_passage_index: 0,
+    p_site_id: 0,
+    p_comprehension_passed: false,
+    p_comprehension_score: 0,
+    p_vocabulary_passed: false,
+    p_vocabulary_score: 0,
+  }
+);
 
     if (rpcError) {
       console.error("❌ RPC add_kid_reading_attempts failed:", rpcError);

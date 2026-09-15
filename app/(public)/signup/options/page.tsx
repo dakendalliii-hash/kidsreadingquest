@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AuthCard from "@/components/AuthCard";
+import { supabase } from "@/lib/supabase/client";
+
 
 export default function SignupOptionsPage() {
   const router = useRouter();
@@ -163,7 +165,10 @@ export default function SignupOptionsPage() {
 
               <button
                 className="btn-blue full-card-button"
-                onClick={() => setScreen("founderSelected")}
+onClick={async () => {
+  await supabase.rpc("update_parent_plan_type", { new_plan_type: "free" });
+  setScreen("founderSelected");
+}}
               >
                 Select Founder Plan
               </button>
@@ -194,7 +199,10 @@ export default function SignupOptionsPage() {
 
               <button
                 className="btn-blue full-card-button"
-                onClick={() => setScreen("monthlySelected")}
+onClick={async () => {
+  await supabase.rpc("update_parent_plan_type", { new_plan_type: "paid" });
+  setScreen("monthlySelected");
+}}
               >
                 Select Monthly Plan
               </button>

@@ -38,6 +38,8 @@ console.log("KidProfile params:", { id: kidId, source });
 
   if (!parentRecord) redirect("/login");
 
+const parentPlanType = parentRecord.plan_type ?? "Not assigned";
+
   // ⭐ Ensure kid belongs to parent
   const { data: kid } = await supabase
     .from("kids")
@@ -123,7 +125,7 @@ console.log("KidProfile params:", { id: kidId, source });
           <p><strong>Age:</strong> {kid.age}</p>
           <p><strong>Band:</strong> {band}</p>
           <p><strong>Assessment Score:</strong> {assessmentScore}</p>
-          <p><strong>Reading Plan Type:</strong> {readingPlanType}</p>
+          <p><strong>Reading Plan Type:</strong> {parentPlanType}</p>
           <p><strong>Date Joined:</strong> {dateJoined}</p>
           <p><strong>Last Workout Date:</strong> {lastWorkoutDate ? new Date(lastWorkoutDate).toLocaleString() : "None"}</p>
           <p><strong>Last Workout Completed:</strong> {lastWorkoutCompleted}</p>

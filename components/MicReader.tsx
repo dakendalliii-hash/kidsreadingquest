@@ -26,6 +26,10 @@ export default function MicReader({
   onComplete: (results: any) => void;
   mode: "assessment" | "existing";
 }) {
+
+const startTimeRef = useRef<number | null>(null);
+const endTimeRef = useRef<number | null>(null);
+
   const [isListening, setIsListening] = useState(false);
   const [showPrivacyBanner, setShowPrivacyBanner] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -144,6 +148,17 @@ export default function MicReader({
 
     const minRequiredWords = Math.floor(passageWords.length * 0.7);
 
+endTimeRef.current = performance.now();
+
+if (startTimeRef.current == null || endTimeRef.current == null) {
+  console.error("Timing error: timestamps missing");
+  return;
+}
+
+const totalSeconds = Math.round(
+  (endTimeRef.current - startTimeRef.current) / 1000
+);
+
     if (spokenWords.length < minRequiredWords) {
       console.log(
         `[MicReader] Transcript too short (${spokenWords.length}/${passageWords.length})`
@@ -156,7 +171,7 @@ export default function MicReader({
         accuracy: 0,
         errors: passageWords.length,
         totalWords: passageWords.length,
-        totalSeconds: 10,
+        totalSeconds,
         transcript,
         mispronounced: passageWords.length,
         skipped: 0,
@@ -191,7 +206,6 @@ export default function MicReader({
     }
 
     const accuracy = Math.round((correct / totalWords) * 100);
-    const totalSeconds = 10;
     const wpm = Math.round((spokenWords.length / totalSeconds) * 60);
 
     const metrics = {
@@ -272,6 +286,9 @@ export default function MicReader({
 
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      startTimeRef.current = performance.now();
+
       setIsListening(true);
       hasHandledTranscriptRef.current = false;
       hasCompletedRef.current = false;
