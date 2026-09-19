@@ -30,7 +30,7 @@ export default function NavBar({
           style={{
             color: "white",
             fontWeight: "bold",
-            fontSize: "1.1rem",
+            fontSize: "2rem",
             textDecoration: "none",
           }}
         >
