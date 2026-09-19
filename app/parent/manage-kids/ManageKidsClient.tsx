@@ -135,6 +135,9 @@ export default function ManageKidsClient({
               ))}
             </select>
 
+  <label>Birthday:</label>
+  <input type="date" id="birthday" name="birthday"/>
+
             <button type="submit" className="btn-blue full-card-button">
               Add Kid
             </button>
