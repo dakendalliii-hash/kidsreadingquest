@@ -59,6 +59,9 @@ const parentPlanType = parentRecord.plan_type ?? "Not assigned";
 
   const band = progress?.band ?? "Unknown";
 
+const site_id = progress?.site_id;
+const passage_index = progress?.passage_index;
+
   // ⭐ Fetch last workout attempt
   const { data: lastAttempt } = await supabase
     .from("reading_attempts")
