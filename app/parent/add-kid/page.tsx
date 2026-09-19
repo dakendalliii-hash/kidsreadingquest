@@ -101,6 +101,9 @@ try {
               ))}
             </select>
 
+  <label>Birthday:</label>
+  <input type="date" id="birthday" name="birthday"/>
+
             <ActionButton label="Add Kid" />
           </form>
         </div>
