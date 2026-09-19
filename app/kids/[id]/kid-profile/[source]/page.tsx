@@ -53,7 +53,7 @@ const parentPlanType = parentRecord.plan_type ?? "Not assigned";
   // ⭐ Fetch band from progress
   const { data: progress } = await supabase
     .from("progress")
-    .select("band")
+    .select("band, site_id, passage_index")
     .eq("kid_id", kidId)
     .single();
 
@@ -123,6 +123,7 @@ const parentPlanType = parentRecord.plan_type ?? "Not assigned";
         <div className="forward-card">
           <p><strong>Name:</strong> {kid.name}</p>
           <p><strong>Age:</strong> {kid.age}</p>
+<p><strong>Birthday:</strong> {'10/12/2021'} </p>
           <p><strong>Band:</strong> {band}</p>
           <p><strong>Assessment Score:</strong> {assessmentScore}</p>
           <p><strong>Reading Plan Type:</strong> {parentPlanType}</p>
