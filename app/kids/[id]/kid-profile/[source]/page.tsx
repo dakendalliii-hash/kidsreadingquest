@@ -62,6 +62,18 @@ const parentPlanType = parentRecord.plan_type ?? "Not assigned";
 const site_id = progress?.site_id;
 const passage_index = progress?.passage_index;
 
+// ⭐ Fetch workout number for the current passage
+const { data: workoutRow } = await supabase
+  .from("passages")
+  .select("workout")
+  .eq("language", "en")
+  .eq("band", band)
+  .eq("site_id", site_id)
+  .eq("passage_index", passage_index)
+  .single();
+
+const currentWorkout = workoutRow?.workout ?? "Unknown";
+
   // ⭐ Fetch last workout attempt
   const { data: lastAttempt } = await supabase
     .from("reading_attempts")
