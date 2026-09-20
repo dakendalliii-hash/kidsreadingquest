@@ -139,8 +139,32 @@ export default function NavBar({
           Contact Us
         </Link>
 
+
         {/* ⭐ BACK BUTTON — furthest right */}
         <BackButton />
+
+ {/* ⭐ LOGOUT BUTTON — only when logged in */}
+        {isLoggedIn && (
+          <Link
+            href="/logout"
+            style={{
+              backgroundColor: "#f5f6fa",
+              color: "#2c3e50",
+              border: "none",
+              borderRadius: "6px",
+              padding: "6px 14px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "0.95rem",
+              minWidth: "90px",
+              textAlign: "center",
+              textDecoration: "none",
+            }}
+          >
+            Logout
+          </Link>
+        )}
+
       </div>
     </nav>
   );
