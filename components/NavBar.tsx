@@ -140,29 +140,8 @@ export default function NavBar({
         </Link>
 
         {/* ⭐ MINIMAL CHANGE #1 — Logout must appear BEFORE BackButton in DOM */}
-        {isLoggedIn && (
-          <Link
-            href="/logout"
-            style={{
-              backgroundColor: "#f5f6fa",
-              color: "#2c3e50",
-              border: "none",
-              borderRadius: "6px",
-              padding: "6px 14px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-              minWidth: "90px",
-              textAlign: "center",
-              textDecoration: "none",
 
-              // ⭐ MINIMAL CHANGE #2 — Visually move Logout to the far right
-              order: 999,
-            }}
-          >
-            Logout
-          </Link>
-        )}
+
 
         {/* ⭐ MINIMAL CHANGE #3 — BackButton stays last in DOM but appears before Logout */}
         <div style={{ order: 1 }}>

@@ -22,6 +22,8 @@ try {
 
   if (!user) redirect("/login");
 
+
+
   // Fetch parent record
   const { data: parentRecord, error: parentError } = await supabase
     .from("parents")
@@ -162,8 +164,10 @@ try {
   );
 
   } catch (error) {
-    await logError("SSR: app/parent/manage-kids", error);
-    throw error;
+//    await logError("SSR: app/parent/manage-kids", error);
+//    throw error;
+console.error("Server error:", error);
+
   }
 
 }
