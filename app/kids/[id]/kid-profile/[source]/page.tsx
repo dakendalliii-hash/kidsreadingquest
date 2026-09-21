@@ -156,8 +156,10 @@ const currentWorkout = workoutRow?.workout ?? "Unknown";
   );
 
   } catch (error) {
-    await logError("SSR: app/kids/[id]/kid-profile", error);
-    throw error;
+//    await logError("SSR: app/kids/[id]/kid-profile", error);
+//    throw error;
+console.error("Server error:", error);
+
   }
 
 }
