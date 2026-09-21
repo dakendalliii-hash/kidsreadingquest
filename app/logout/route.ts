@@ -6,7 +6,8 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 // Unified logout handler (used for both GET and POST)
 // ---------------------------------------------------------
 async function handleLogout(req: NextRequest) {
-  const res = NextResponse.redirect(new URL("/post-logout", req.url));
+  // ⭐ FIX: redirect to home page, not /post-logout
+  const res = NextResponse.redirect(new URL("/", req.url));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -7,39 +7,35 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import NavBarWrapper from "@/components/NavBarWrapper";
 import { logError } from "@/lib/logging/logError";
 
-
 export default async function ParentLayout({ children }: { children: ReactNode }) {
+  try {
+    const supabase = await createServerSupabaseClient();
 
-try {
+    // ⭐ FIX: use getSession() instead of getUser()
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
 
-  const supabase = await createServerSupabaseClient();
+    // ⭐ FIX: check session instead of user
+    if (error || !session) redirect("/login");
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+    const { data: roleRecord } = await supabase
+      .from("roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .single();
 
-  if (error || !user) redirect("/login");
+    if (roleRecord?.role !== "parent") redirect("/unauthorized");
 
-  const { data: roleRecord } = await supabase
-    .from("roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .single();
-
-  if (roleRecord?.role !== "parent") redirect("/unauthorized");
-
-  return (
-    <div>
-      {/* ⭐ NavBarWrapper handles auth; NavBar handles Back button */}
-
-      {children}
-    </div>
-  );
-
+    return (
+      <div>
+        {/* ⭐ NavBarWrapper handles auth; NavBar handles Back button */}
+        {children}
+      </div>
+    );
   } catch (error) {
     await logError("SSR: app/parent/layout", error);
     throw error;
   }
-
 }
