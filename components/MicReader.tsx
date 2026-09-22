@@ -114,115 +114,108 @@ const endTimeRef = useRef<number | null>(null);
     recognitionRef.current = recognition;
   }, [passageEnglish]);
 
-  async function handleTranscript(transcript: string) {
-    console.log("[MicReader] handleTranscript fired with:", transcript);
+async function handleTranscript(transcript: string) {
+  console.log("[MicReader] handleTranscript fired with:", transcript);
 
-    if (hasHandledTranscriptRef.current) {
-      console.log("[MicReader] Duplicate transcript ignored");
-      setIsListening(false);
+  // ... all your existing early-return / mic cleanup code ...
 
-      onComplete({
-        metrics: null,
-        server: { fluencyPassed: false },
-      });
+  const passageWords = passageEnglish.split(/\s+/);
+  const spokenWords = transcript.trim().split(/\s+/);
 
-      return;
-    }
-    hasHandledTranscriptRef.current = true;
+  const minRequiredWords = Math.floor(passageWords.length * 0.7);
 
-    try {
-      recognitionRef.current?.stop();
-    } catch (_) {}
+  endTimeRef.current = performance.now();
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((t) => t.stop());
-      console.log("[MicReader] Mic stream released (transcript)");
-    } catch (_) {}
+  if (startTimeRef.current == null || endTimeRef.current == null) {
+    console.error("Timing error: timestamps missing");
+    return;
+  }
 
-    setShowPrivacyBanner(true);
-    setTimeout(() => setShowPrivacyBanner(false), 4000);
+  const totalSeconds = Math.round(
+    (endTimeRef.current - startTimeRef.current) / 1000
+  );
 
-    const passageWords = passageEnglish.split(/\s+/);
-    const spokenWords = transcript.trim().split(/\s+/);
+  if (spokenWords.length < minRequiredWords) {
+    // ... your existing short transcript handling ...
+    return;
+  }
 
-    const minRequiredWords = Math.floor(passageWords.length * 0.7);
+  // ⭐ NORMALIZER + NORMALIZED ARRAYS MUST BE HERE,
+  // BEFORE THE SCORING LOOP AND BEFORE fuzzyMatch IS USED
+  function normalize(word: string) {
+    return word
+      .toLowerCase()
+      .replace(/[.,!?;:]/g, "")   // punctuation
+      .replace(/['"]/g, "")       // quotes
+      .trim();
+  }
 
-endTimeRef.current = performance.now();
+  const normalizedPassageWords = passageWords.map(normalize);
+  const normalizedSpokenWords = spokenWords.map(normalize);
 
-if (startTimeRef.current == null || endTimeRef.current == null) {
-  console.error("Timing error: timestamps missing");
-  return;
-}
+  function fuzzyMatch(a: string, b: string) {
+    if (!a || !b) return false;
 
-const totalSeconds = Math.round(
-  (endTimeRef.current - startTimeRef.current) / 1000
-);
+    if (a === b) return true;
 
-    if (spokenWords.length < minRequiredWords) {
-      console.log(
-        `[MicReader] Transcript too short (${spokenWords.length}/${passageWords.length})`
-      );
+    if (Math.abs(a.length - b.length) <= 1) {
+      let mismatches = 0;
+      let i = 0, j = 0;
 
-      setIsListening(false);
+      while (i < a.length && j < b.length) {
+        if (a[i] !== b[j]) {
+          mismatches++;
+          if (mismatches > 1) return false;
 
-      const shortMetrics = {
-        wpm: 0,
-        accuracy: 0,
-        errors: passageWords.length,
-        totalWords: passageWords.length,
-        totalSeconds,
-        transcript,
-        mispronounced: passageWords.length,
-        skipped: 0,
-        inserted: 0,
-        repeated: 0,
-        band,
-        kidId,
-        language: "en",
-      };
-
-      onComplete({
-        metrics: shortMetrics,
-        server: { fluencyPassed: false },
-      });
-
-      return;
-    }
-
-    const totalWords = passageWords.length;
-    let correct = 0;
-    let errors = 0;
-
-    for (let i = 0; i < passageWords.length; i++) {
-      if (
-        spokenWords[i] &&
-        spokenWords[i].toLowerCase() === passageWords[i].toLowerCase()
-      ) {
-        correct++;
-      } else {
-        errors++;
+          if (a.length > b.length) i++;
+          else if (b.length > a.length) j++;
+          else {
+            i++; j++;
+          }
+        } else {
+          i++; j++;
+        }
       }
+
+      return mismatches <= 1;
     }
 
-    const accuracy = Math.round((correct / totalWords) * 100);
-    const wpm = Math.round((spokenWords.length / totalSeconds) * 60);
+    return false;
+  }
 
-    const metrics = {
-      wpm,
-      accuracy,
-      errors,
-      totalWords,
-      totalSeconds,
-      transcript,
-      mispronounced: errors,
-      skipped: 0,
-      inserted: 0,
-      repeated: 0,
-      band,
-      kidId,
-      language: "en",
-    };
+  const totalWords = passageWords.length;
+  let correct = 0;
+  let errors = 0;
+
+  for (let i = 0; i < passageWords.length; i++) {
+    if (
+      normalizedSpokenWords[i] &&
+      fuzzyMatch(normalizedSpokenWords[i], normalizedPassageWords[i])
+    ) {
+      correct++;
+    } else {
+      errors++;
+    }
+  }
+
+  const accuracy = Math.round((correct / totalWords) * 100);
+  const wpm = Math.round((spokenWords.length / totalSeconds) * 60);
+
+  const metrics = {
+    wpm,
+    accuracy,
+    errors,
+    totalWords,
+    totalSeconds,
+    transcript,
+    mispronounced: errors,
+    skipped: 0,
+    inserted: 0,
+    repeated: 0,
+    band,
+    kidId,
+    language: "en",
+  };
 
     console.log("[MicReader] Local metrics:", metrics);
 
