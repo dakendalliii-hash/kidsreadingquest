@@ -141,11 +141,14 @@ const currentWorkout = workoutRow?.workout ?? "Unknown";
 <p><strong>Birthday:</strong> {'10/12/2021'} </p>
           <p><strong>Band:</strong> {band}</p>
           <p><strong>Assessment Score:</strong> {assessmentScore}</p>
-          <p><strong>Reading Plan Type:</strong> {parentPlanType}</p>
+<p><strong>Current Fitness Score:</strong> {'85'}</p>
+          <p><strong>Reading Plan Type:</strong> {parentPlanType}</p>    
           <p><strong>Date Joined:</strong> {dateJoined}</p>
           <p><strong>Last Workout Date:</strong> {lastWorkoutDate ? new Date(lastWorkoutDate).toLocaleString() : "None"}</p>
-          <p><strong>Last Workout Completed:</strong> {lastWorkoutCompleted}</p>
+          <p><strong>Last Workout Completed:</strong> {currentWorkout-1}</p>    
+          <p><strong>Workout Number:</strong> {currentWorkout}</p>
         </div>
+{/* -Prior code for Last Workout Completed- {lastWorkoutCompleted}</p> */}
 
         {/* ⭐ Start Workout Button */}
         <a href={`/kids/${kidId}/reading`} className="btn-green full-card-button">

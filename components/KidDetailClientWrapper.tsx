@@ -132,7 +132,7 @@ export default function KidDetailClientWrapper({
 
     if (server?.fluencyPassed === false) {
       console.log("[Wrapper] Server fluencyPassed === false");
-      setFailureMessage("Fluency not high enough. Try again!");
+      setFailureMessage("Try saying each word to yourself before trying again.");
       setRetryCount((c) => c + 1);
       setHasCompletedOnce(false);
       return;
@@ -156,7 +156,7 @@ export default function KidDetailClientWrapper({
     }
 
     // ⭐ Failure fallback
-    setFailureMessage("Fluency not high enough. Try again!");
+    setFailureMessage("Read each word to yourself before trying again.");
     setRetryCount((c) => c + 1);
     setHasCompletedOnce(false);
   }

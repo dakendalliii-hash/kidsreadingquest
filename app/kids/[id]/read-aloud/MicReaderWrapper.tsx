@@ -77,7 +77,7 @@ export default function MicReaderWrapper({
       {retry && (
         <div className="text-center mt-5">
           <p className="text-red-600 font-bold">
-            Try again — read the passage more clearly.
+            Read each word to yourself before trying again.
           </p>
           <button
             onClick={() => setRetry(false)}
