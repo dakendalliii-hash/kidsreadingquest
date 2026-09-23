@@ -145,7 +145,7 @@ const currentWorkout = workoutRow?.workout ?? "Unknown";
           <p><strong>Reading Plan Type:</strong> {parentPlanType}</p>    
           <p><strong>Date Joined:</strong> {dateJoined}</p>
           <p><strong>Last Workout Date:</strong> {lastWorkoutDate ? new Date(lastWorkoutDate).toLocaleString() : "None"}</p>
-          <p><strong>Last Workout Completed:</strong> {currentWorkout-1}</p>    
+          <p><strong>Last Workout Completed:</strong> {currentWorkout > 0 ? currentWorkout-1 : currentWorkout}</p>    
           <p><strong>Workout Number:</strong> {currentWorkout}</p>
         </div>
 {/* -Prior code for Last Workout Completed- {lastWorkoutCompleted}</p> */}

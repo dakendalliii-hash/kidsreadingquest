@@ -135,6 +135,22 @@ export async function POST(
       }
     );
 
+// Check for workout completion
+// If comprehensionPassed && vocabularyPassed - get current workout value from passages for language, band, site_id, passage_index
+// select * from passages where language, band, workout = newWorkout order by site_id, passage_index.  If workout=3 then 
+// display results page (current results format ok).  If this works then combine all attempts to get an average and specific number of attempts to pass
+// 3. If all 3 passages are completed → redirect to the existing Results page
+//if (attemptsCount === 3) {
+//  return NextResponse.json({
+//    redirect: `/kids/${kidId}/reading/results?workout=${workoutNumber}`
+//  });
+//}
+
+// 4. Otherwise → continue to the next passage
+//return NextResponse.json({
+//  redirect: `/kids/${kidId}/reading?mode=existing`
+//});
+
     const advanceJson = await advanceRes.json();
 
     return NextResponse.json({
