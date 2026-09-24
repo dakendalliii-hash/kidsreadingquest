@@ -85,7 +85,7 @@ try {
                         margin: "0 auto 15px auto",
                       }}
                     >
-                      {kid.name}
+                      Profile for {kid.name}
                     </button>
                   </form>
                 </div>
@@ -132,7 +132,7 @@ try {
                 margin: "0 auto",
               }}
             >
-              View Reading Progress Report
+              Consolidated Profile for Parents
             </button>
           </form>
         </div>
