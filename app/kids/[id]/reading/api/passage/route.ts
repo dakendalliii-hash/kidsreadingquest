@@ -5,8 +5,15 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createServerSupabaseClient();
+
+  const { params } = context;
+
+  const { id: kidId } = await params;
+  console.log("KidProfile params:", { id: kidId });
+
   const body = await req.json();
+
+  const supabase = await createServerSupabaseClient();
 
   const {
     band,
@@ -25,15 +32,39 @@ export async function POST(
     language,
   });
 
+// Want to get workout from progress table (if possible)
+    // ------------------------------------------------------------------------
+    // Load passage to determine workout value
+    // ------------------------------------------------------------------------
+    const { data: passageRecord, error: passageError } = await supabase
+      .from("progress")
+      .select("workout")
+      .eq("kid_id", kidId)
+      .single();
+
+    if (passageError || !passageRecord) {
+      return NextResponse.json(
+        { success: false, error: "Passage not found" },
+        { status: 404 }
+      );
+    }
+
+const currentWorkout = Number(passageRecord.workout);
+console.log("[PASSAGE API] Workout Value ", {currentWorkout});
+
   // ⭐ THIS is where .eq("language", language) belongs
   const { data, error } = await supabase
     .from("passages")
     .select("text")
     .eq("band", band)
-    .eq("site_id", siteId)
-    .eq("passage_index", passageIndex)
+    .eq("workout", currentWorkout)
     .eq("language", language)        // ⭐ REQUIRED — prevents Hindi row from being returned
     .single();
+
+{/* Using workout instead of site_id and passage_index to get better tracking
+    .eq("site_id", siteId)
+    .eq("passage_index", passageIndex)
+*/}
 
   if (error) {
     console.error("[PASSAGE API] Error:", error);

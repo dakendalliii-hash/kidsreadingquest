@@ -45,10 +45,10 @@ try {
 
   if (!kid) redirect("/parent/manage-kids");
 
-  // ⭐ Load progress (band, site, passage_index)
+  // ⭐ Load progress (band, site, passage_index, workout)
   const { data: progress, error: progressError } = await supabase
     .from("progress")
-    .select("band, site_id, passage_index")
+    .select("band, site_id, passage_index,workout")   // Added workout so we always get the current workout
     .eq("kid_id", kidId)
     .single();
 
@@ -57,15 +57,14 @@ try {
     redirect(`/kids/${kidId}/read-aloud?lang=en`);
   }
 
-  const { band, site_id, passage_index } = progress;
+  const { band, site_id, passage_index, workout } = progress;   // Added workout for better tracking
 
   // ⭐ Load passage text (English)
   const { data: passageData, error: passageError } = await supabase
     .from("passages")
     .select("text")
     .eq("band", band)
-    .eq("site_id", site_id)
-    .eq("passage_index", passage_index)
+    .eq("workout", workout)
     .eq("language", "en")
     .single();
 
@@ -74,6 +73,12 @@ try {
       `Passage not found for band=${band}, site=${site_id}, index=${passage_index}`
     );
   }
+
+{/*  Took out the site_id and passage_index so we can use workout instead for better tracking
+      .eq("site_id", site_id)
+    .eq("passage_index", passage_index)
+*/}
+
 
   const passageText = passageData.text ?? "";
 
@@ -100,7 +105,7 @@ try {
   );
 
   } catch (error) {
-    await logError("SSR: app/kids/[id]/reading/page", error);
+    console.log("SSR: app/kids/[id]/reading/page", error);
     throw error;
   }
 

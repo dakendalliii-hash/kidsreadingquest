@@ -44,6 +44,13 @@ export default function KidDetailClientWrapper({
   const [hasCompletedOnce, setHasCompletedOnce] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
+
+console.log("[WRAPPER] rendering passage:", {
+  band,
+  siteId,
+  passageIndex,
+});
+
   /**
    * Fetch ENGLISH passage only.
    */
@@ -91,7 +98,9 @@ export default function KidDetailClientWrapper({
     setFailureMessage(null);
 
     const { metrics, server } = results;
-    const { accuracy, wpm } = metrics;
+const safeMetrics = metrics ?? {};
+const accuracy = safeMetrics.accuracy ?? 0;
+const wpm = safeMetrics.wpm ?? 0;
 
     // ⭐ Store workout attempt locally
     try {

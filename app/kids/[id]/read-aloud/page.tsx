@@ -40,10 +40,10 @@ try {
 
   if (!user || user.id !== kidRecord.parent_id) redirect("/kids");
 
-  // ⭐ 2. Load PROGRESS (band, site, passage_index)
+  // ⭐ 2. Load PROGRESS (band, site, passage_index, workout)
   const { data: progress, error: progressError } = await supabase
     .from("progress")
-    .select("band, site_id, passage_index")
+    .select("band, site_id, passage_index, workout")
     .eq("kid_id", kidId)
     .single();
 
@@ -52,7 +52,7 @@ try {
     redirect(`/kids/${kidId}/read-aloud?lang=en`);
   }
 
-  const { band, site_id, passage_index } = progress;
+  const { band, site_id, passage_index, workout } = progress;
 
   // ⭐ 3. Load passage using PROGRESS values
   // ❗ Use real columns: text
@@ -61,10 +61,14 @@ try {
     .from("passages")
     .select("text")
     .eq("band", band)
-    .eq("site_id", site_id)
-    .eq("passage_index", passage_index)
+    .eq("workout", workout)
     .eq("language", "en")
     .single();
+
+{/* Added workout in order to get better tracking and took out the two lines below:
+        .eq("site_id", site_id)
+    .eq("passage_index", passage_index)
+*/}
 
   if (passageError || !passage) {
     // If passage missing, return kid to profile (same behavior as before)

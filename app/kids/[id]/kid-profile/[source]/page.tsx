@@ -64,15 +64,13 @@ const passage_index = progress?.passage_index;
 
 // ⭐ Fetch workout number for the current passage
 const { data: workoutRow } = await supabase
-  .from("passages")
+  .from("progress")
   .select("workout")
-  .eq("language", "en")
-  .eq("band", band)
-  .eq("site_id", site_id)
-  .eq("passage_index", passage_index)
+  .eq("kid_id", kidId)
   .single();
 
 const currentWorkout = workoutRow?.workout ?? "Unknown";
+const lastWorkoutCompleted = Math.floor(currentWorkout-1);
 
   // ⭐ Fetch last workout attempt
   const { data: lastAttempt } = await supabase
@@ -84,9 +82,10 @@ const currentWorkout = workoutRow?.workout ?? "Unknown";
     .single();
 
   const lastWorkoutDate = lastAttempt?.created_at ?? null;
-  const lastWorkoutCompleted = lastAttempt
+{/*  const lastWorkoutCompleted = lastAttempt
+
     ? `${lastAttempt.site_id}-${lastAttempt.passage_index}`
-    : "None";
+    : "None";  */}
 
   // ⭐ Fetch latest assessment attempt
   const { data: assessmentAttempt } = await supabase
@@ -145,7 +144,7 @@ const currentWorkout = workoutRow?.workout ?? "Unknown";
           <p><strong>Reading Plan Type:</strong> {parentPlanType}</p>    
           <p><strong>Date Joined:</strong> {dateJoined}</p>
           <p><strong>Last Workout Date:</strong> {lastWorkoutDate ? new Date(lastWorkoutDate).toLocaleString() : "None"}</p>
-          <p><strong>Last Workout Completed:</strong> {currentWorkout > 0 ? currentWorkout-1 : currentWorkout}</p>    
+          <p><strong>Last Workout Completed:</strong> {currentWorkout > 0 ? lastWorkoutCompleted : "None"}</p>    
           <p><strong>Workout Number:</strong> {currentWorkout}</p>
         </div>
 {/* -Prior code for Last Workout Completed- {lastWorkoutCompleted}</p> */}

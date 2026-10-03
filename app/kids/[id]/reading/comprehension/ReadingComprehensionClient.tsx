@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 
-export default function ReadingComprehensionClient({
-  kidId,
-  passageText,
-  band,
-  siteId,
-  passageIndex,
-  questions,
-}: {
+interface ReadingComprehensionClientProps {
   kidId: string;
   passageText: string;
   band: string;
@@ -20,14 +13,29 @@ export default function ReadingComprehensionClient({
     choices: string[];
     correctIndex: number;
   }[];
-}) {
-  const [answers, setAnswers] = useState<number[]>(
+}
+
+export default function ReadingComprehensionClient({
+  kidId,
+  passageText,
+  band,
+  siteId,
+  passageIndex,
+  questions,
+}: ReadingComprehensionClientProps) {
+
+
+  const [answers, setAnswers] = useState(
     Array(questions.length).fill(-1)
   );
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function selectAnswer(qIndex: number, choiceIndex: number) {
+  function selectAnswer(
+  qIndex: number,
+  choiceIndex: number
+) {
     const updated = [...answers];
     updated[qIndex] = choiceIndex;
     setAnswers(updated);
@@ -44,7 +52,7 @@ export default function ReadingComprehensionClient({
     setSubmitting(true);
 
     try {
-      // ⭐ Score comprehension
+      // Score comprehension
       let correctCount = 0;
       questions.forEach((q, i) => {
         if (answers[i] === q.correctIndex) correctCount++;
@@ -55,7 +63,7 @@ export default function ReadingComprehensionClient({
       );
       const comprehensionPassed = comprehensionScore === 100;
 
-      // ⭐ POST to server API route (RLS-safe)
+      // POST to server API route
       const res = await fetch(`/kids/${kidId}/reading/comprehension/api`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -76,13 +84,18 @@ export default function ReadingComprehensionClient({
         return;
       }
 
-      // ⭐ Redirect logic
+      // Redirect logic
       if (!comprehensionPassed) {
         window.location.href = `/kids/${kidId}/read-aloud?lang=en`;
         return;
       }
 
-      window.location.href = `/kids/${kidId}/reading/vocabulary`;
+      // ⭐ FIX: pass override parameters to vocabulary
+      window.location.href =
+        `/kids/${kidId}/reading/vocabulary?` +
+        `band=${band}&` +
+        `siteId=${siteId}&` +
+        `passageIndex=${passageIndex}`;
     } catch (err) {
       console.error("[Comprehension] Error:", err);
       setError("Error saving comprehension results.");
@@ -92,36 +105,29 @@ export default function ReadingComprehensionClient({
   }
 
   return (
-    <div
-      style={{
-        backgroundColor: "white",
-        padding: "30px",
-        borderRadius: "12px",
-        maxWidth: "900px",
-        margin: "0 auto",
-        color: "black",
-      }}
-    >
-      <h2
-        style={{
-          marginBottom: "20px",
-          fontSize: "1.6rem",
-          fontWeight: "bold",
-        }}
-      >
+    <div style={{
+      backgroundColor: "white",
+      padding: "30px",
+      borderRadius: "12px",
+      maxWidth: "900px",
+      margin: "0 auto",
+      color: "black",
+    }}>
+      <h2 style={{
+        marginBottom: "20px",
+        fontSize: "1.6rem",
+        fontWeight: "bold",
+      }}>
         Comprehension Questions
       </h2>
 
       {questions.map((q, qIndex) => (
-        <div
-          key={qIndex}
-          style={{
-            marginBottom: "30px",
-            padding: "20px",
-            backgroundColor: "#fefce8",
-            borderRadius: "10px",
-          }}
-        >
+        <div key={qIndex} style={{
+          marginBottom: "30px",
+          padding: "20px",
+          backgroundColor: "#fefce8",
+          borderRadius: "10px",
+        }}>
           <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
             {qIndex + 1}. {q.question}
           </p>
@@ -144,16 +150,14 @@ export default function ReadingComprehensionClient({
       ))}
 
       {error && (
-        <div
-          style={{
-            backgroundColor: "#ffe6e6",
-            padding: "12px",
-            borderRadius: "8px",
-            marginBottom: "20px",
-            color: "black",
-            fontWeight: "bold",
-          }}
-        >
+        <div style={{
+          backgroundColor: "#ffe6e6",
+          padding: "12px",
+          borderRadius: "8px",
+          marginBottom: "20px",
+          color: "black",
+          fontWeight: "bold",
+        }}>
           {error}
         </div>
       )}

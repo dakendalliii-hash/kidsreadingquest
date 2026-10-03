@@ -40,6 +40,7 @@ export default function ReadingVocabularyClient({
     setError(null);
 
     try {
+      // Compute score
       const correctCount = questions.reduce((acc, q, i) => {
         return acc + (answers[i] === q.correctIndex ? 1 : 0);
       }, 0);
@@ -48,12 +49,21 @@ export default function ReadingVocabularyClient({
         (correctCount / questions.length) * 100
       );
 
+      console.log("[VOCAB CLIENT] submitting:", {
+        band,
+        siteId,
+        passageIndex,
+        answers,
+        scorePercent,
+      });
+
+      // Submit to API
       const res = await fetch(`/kids/${kidId}/reading/vocabulary/api`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          answers,
-          questions,
+          vocabularyScore: scorePercent,
+          vocabularyPassed: scorePercent >= 70,
           band,
           siteId,
           passageIndex,
@@ -61,16 +71,33 @@ export default function ReadingVocabularyClient({
       });
 
       const result = await res.json();
+      console.log("[VOCAB CLIENT] API result:", result);
 
       if (result.error) {
+        console.log("[VOCAB CLIENT] error from API:", result.error);
         setError(result.error);
         setSubmitting(false);
         return;
       }
 
-      window.location.href = `/kids/${kidId}/reading/results`;
+      // Workout complete → go to results
+      if (result.workoutComplete) {
+        console.log("[VOCAB CLIENT] workoutComplete → redirect to results");
+        window.location.href = `/kids/${kidId}/reading/results`;
+        return;
+      }
+
+      // Otherwise → go to next passage
+      const next = result.redirect;
+      console.log("[VOCAB CLIENT] next passage redirect:", next);
+
+      window.location.href =
+        `/kids/${kidId}/reading?` +
+        `band=${next.band}&` +
+        `siteId=${next.siteId}&` +
+        `passageIndex=${next.passageIndex}`;
     } catch (err) {
-      console.error(err);
+      console.error("[VOCAB CLIENT] unexpected error:", err);
       setError("Unexpected error submitting vocabulary.");
     } finally {
       setSubmitting(false);

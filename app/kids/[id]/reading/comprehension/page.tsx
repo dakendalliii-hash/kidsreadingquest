@@ -1,11 +1,9 @@
 // app/kids/[id]/reading/comprehension/page.tsx
 
 import { redirect } from "next/navigation";
-import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import ReadingComprehensionClient from "./ReadingComprehensionClient";
 import { logError } from "@/lib/logging/logError";
-
 
 function generateComprehensionQuestions(passageText: string) {
   const sentences = passageText
@@ -48,96 +46,103 @@ function generateComprehensionQuestions(passageText: string) {
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    band?: string;
+    siteId?: string;
+    passageIndex?: string;
+  }>;
 }) {
+  try {
+    const { id: kidId } = await params;
+    const supabase = await createServerSupabaseClient();
 
-try {
+    // ⭐ Load progress
+    const { data: progress, error: progressError } = await supabase
+      .from("progress")
+      .select("band, site_id, passage_index")
+      .eq("kid_id", kidId)
+      .single();
 
-  // ⭐ Next.js 16 param unwrapping
-  const { id: kidId } = await params;
+    if (progressError || !progress) {
+      redirect(`/kids/${kidId}/read-aloud?lang=en`);
+    }
 
-  const supabase = await createServerSupabaseClient();
+    // ⭐ Read overrides from URL
 
-  // ⭐ 1. Load progress (band, site, passage_index)
-  const { data: progress, error: progressError } = await supabase
-    .from("progress")
-    .select("band, site_id, passage_index")
-    .eq("kid_id", kidId)
-    .single();
+const resolvedSearchParams = await searchParams;
 
-  if (progressError || !progress) {
-    redirect(`/kids/${kidId}/read-aloud?lang=en`);
-  }
+const overrideBand = resolvedSearchParams.band;
+const overrideSiteId = resolvedSearchParams.siteId;
+const overridePassageIndex = resolvedSearchParams.passageIndex;
 
-  const { band, site_id, passage_index } = progress;
 
-  console.log(
-    "[COMPREHENSION PAGE] kidId:",
-    kidId,
-    "band:",
-    band,
-    "siteID:",
-    site_id,
-    "PassageIndex:",
-    passage_index
-  );
+    // ⭐ Apply overrides when present
+    const band = overrideBand ?? progress.band;
+    const siteId = overrideSiteId ? Number(overrideSiteId) : progress.site_id;
+    const passageIndex = overridePassageIndex
+      ? Number(overridePassageIndex)
+      : progress.passage_index;
 
-// ⭐ 2. Load latest fluency attempt
-const { data: fluencyAttempt, error: fluencyError } = await supabase
-  .from("reading_attempts")
-  .select("fluency_passed")
-  .eq("kid_id", kidId)
-  .eq("site_id", site_id)
-  .eq("passage_index", passage_index)
-  .eq("attempt_type", "existing")   // ⭐ RESTORED LINE
-  .order("created_at", { ascending: false })
-  .limit(1)
-  .single();
+    console.log("[COMPREHENSION PAGE] effective:", {
+      kidId,
+      band,
+      siteId,
+      passageIndex,
+      overrideBand,
+      overrideSiteId,
+      overridePassageIndex,
+    });
 
-// ⭐ Only redirect if we have a definitive false
-if (fluencyError || !fluencyAttempt) {
-  redirect(`/kids/${kidId}/read-aloud?lang=en`);
-}
+    // ⭐ Fluency check
+    const { data: fluencyAttempt } = await supabase
+      .from("reading_attempts")
+      .select("fluency_passed")
+      .eq("kid_id", kidId)
+      .eq("site_id", siteId)
+      .eq("passage_index", passageIndex)
+      .eq("attempt_type", "existing")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
-if (fluencyAttempt.fluency_passed === false) {
-  redirect(`/kids/${kidId}/read-aloud?lang=en`);
-}
+    if (!fluencyAttempt || fluencyAttempt.fluency_passed === false) {
+      redirect(`/kids/${kidId}/read-aloud?lang=en`);
+    }
 
-  // ⭐ 3. Load passage text (English only)
-  const { data: passageData, error: passageError } = await supabase
-    .from("passages")
-    .select("text")
-    .eq("band", band)
-    .eq("site_id", site_id)
-    .eq("passage_index", passage_index)
-    .eq("language", "en")
-    .single();
+    // ⭐ Load passage text
+    const { data: passageData, error: passageError } = await supabase
+      .from("passages")
+      .select("text")
+      .eq("band", band)
+      .eq("site_id", siteId)
+      .eq("passage_index", passageIndex)
+      .eq("language", "en")
+      .single();
 
-  if (passageError || !passageData) {
-    throw new Error(
-      `Passage not found for band=${band}, site=${site_id}, index=${passage_index}`
+    if (passageError || !passageData) {
+      throw new Error(
+        `Passage not found for band=${band}, site=${siteId}, index=${passageIndex}`
+      );
+    }
+
+    const questionsData = generateComprehensionQuestions(passageData.text);
+
+    return (
+      <ReadingComprehensionClient
+        kidId={kidId}
+        passageText={passageData.text}
+        band={band}
+        siteId={siteId}
+        passageIndex={passageIndex}
+        questions={questionsData}
+      />
     );
-  }
-
-  // ⭐ 4. Generate comprehension questions dynamically
-  const questionsData = generateComprehensionQuestions(passageData.text);
-
-  // ⭐ 5. Render comprehension client
-  return (
-    <ReadingComprehensionClient
-      kidId={kidId}
-      passageText={passageData.text}
-      band={band}
-      siteId={site_id}
-      passageIndex={passage_index}
-      questions={questionsData}
-    />
-  );
-
-  } catch (error) {
-    await logError("SSR: kid-profile", error);
-    throw error;
-  }
+  }  catch (error) {
+  console.error("SSR: comprehension", error);
+  throw error;
+}
 
 }

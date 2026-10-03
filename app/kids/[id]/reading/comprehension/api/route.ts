@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/logging/logError";
 
-
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -21,7 +20,7 @@ export async function POST(
 
     const supabase = await createServerSupabaseClient();
 
-    // ⭐ Authenticated parent
+    // Authenticated parent
     const {
       data: { user },
       error: userError,
@@ -34,7 +33,7 @@ export async function POST(
       );
     }
 
-    // ⭐ Load previous metrics snapshot
+    // Load previous metrics snapshot
     const { data: lastAttempt } = await supabase
       .from("reading_attempts")
       .select("metrics")
@@ -47,7 +46,7 @@ export async function POST(
       .limit(1)
       .single();
 
-    // ⭐ Merge old + new into a full snapshot
+    // Merge old + new into a full snapshot
     const fullMetrics = {
       ...lastAttempt?.metrics,
 
@@ -71,7 +70,7 @@ export async function POST(
       fluencyPassed: lastAttempt?.metrics?.fluencyPassed ?? false,
     };
 
-    // ⭐ Write full snapshot
+    // Write full snapshot
     const { error: rpcError } = await supabase.rpc("add_kid_reading_attempts", {
       p_attempt_type: "existing",
       p_band: band,
@@ -95,10 +94,15 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({ success: true });
+    // ⭐ FIX: return metrics so KidDetailClientWrapper does not crash
+    return NextResponse.json({
+      success: true,
+      metrics: fullMetrics
+    });
+
   } catch (err) {
     console.error("❌ Comprehension API error:", err);
-  await logError("advance route", err);
+    await logError("advance route", err);
 
     return NextResponse.json(
       { success: false, error: "Server error" },

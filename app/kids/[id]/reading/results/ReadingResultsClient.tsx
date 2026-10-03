@@ -162,6 +162,9 @@ export default function ReadingResultsClient({
 <div style={{ marginTop: "40px", display: "flex", gap: "20px" }}>
 <button
   onClick={async () => {
+
+console.log("[RESULTS CLIENT] calling advance API");
+
     const res = await fetch(`/kids/${kidId}/reading/api/progress/advance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -194,6 +197,15 @@ export default function ReadingResultsClient({
 
   <button
     onClick={() => {
+
+console.log("[RESULTS CLIENT] Next Passage clicked");
+console.log("[RESULTS CLIENT] current:", {
+  band,
+  siteId,
+  passageIndex,
+});
+
+
       window.location.href = "/parent";
     }}
     style={{

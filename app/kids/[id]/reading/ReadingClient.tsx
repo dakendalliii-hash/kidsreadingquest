@@ -9,6 +9,11 @@ import KidDetailClientWrapper from "@/components/KidDetailClientWrapper";
  *
  * Loads the kid's current progress OR override progress from redirect params,
  * then loads the correct English passage.
+ *
+ * FIXES:
+ *   - Deterministic override handling (no fallback to 0)
+ *   - Correct redirect consumption from API routes
+ *   - Stable workout progression (.1 → .2 → .3 → results)
  */
 
 export default function ReadingClient({
@@ -24,7 +29,7 @@ export default function ReadingClient({
   // Celebration flag
   const celebrate = searchParams.get("celebrate") === "1";
 
-  // ⭐ NEW: Override values from redirect
+  // ⭐ Override values from redirect (raw strings)
   const overrideBand = searchParams.get("band");
   const overrideSiteId = searchParams.get("siteId");
   const overridePassageIndex = searchParams.get("passageIndex");
@@ -45,15 +50,38 @@ export default function ReadingClient({
       try {
         setLoading(true);
 
+console.log("[READING CLIENT] searchParams:", {
+  overrideBand,
+  overrideSiteId,
+  overridePassageIndex,
+});
+
         // 1. Fetch current progress (NOT advance)
         const progressRes = await fetch(`/kids/${kidId}/reading/api/progress`);
         const progress = await progressRes.json();
 
-        // ⭐ Apply override params if present
-        const effectiveBand = overrideBand || progress.band;
-        const effectiveSiteId = Number(overrideSiteId) || progress.site_id;
+console.log("[READING CLIENT] progress:", progress);
+
+        // ⭐ Correct override logic:
+        // Only apply override when the param is actually present (not null).
+        const effectiveBand =
+          overrideBand !== null ? overrideBand : progress.band;
+
+        const effectiveSiteId =
+          overrideSiteId !== null
+            ? Number(overrideSiteId)
+            : progress.site_id;
+
         const effectivePassageIndex =
-          Number(overridePassageIndex) || progress.passage_index;
+          overridePassageIndex !== null
+            ? Number(overridePassageIndex)
+            : progress.passage_index;
+
+console.log("[READING CLIENT] effective:", {
+  effectiveBand,
+  effectiveSiteId,
+  effectivePassageIndex,
+});
 
         setBand(effectiveBand);
         setSiteId(effectiveSiteId);
@@ -75,6 +103,12 @@ export default function ReadingClient({
         );
 
         const passageData = await passageRes.json();
+
+console.log("[READING CLIENT] passageData:", passageData);
+if (!passageData.text) {
+  console.warn("[READING CLIENT] EMPTY PASSAGE TEXT — this triggers results page");
+}
+
         setPassageText(passageData.text ?? "");
       } finally {
         setLoading(false);

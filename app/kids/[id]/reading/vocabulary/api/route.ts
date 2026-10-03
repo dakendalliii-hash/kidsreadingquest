@@ -1,171 +1,236 @@
+// ============================================================================
+// FILE: /reading/vocabulary/api/route.ts
+// PURPOSE:
+//   Handles vocabulary scoring for workout passages.
+//   Saves metrics, merges with previous attempt snapshot,
+//   and determines whether the workout is complete (.3).
+//
+// FIXES:
+//   - Deterministic workout end check
+//   - Correct next‑passage computation
+//   - Returns redirect payload so ReadingClient advances properly
+// ============================================================================
+
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id: kidId } = await context.params;
+  try {
+    const { id: kidId } = await context.params;
+    const body = await request.json();
 
-  const {
-    answers,
-    questions,
-    band,
-    siteId,
-    passageIndex,
-  } = await request.json();
+    const {
+      vocabularyScore,
+      vocabularyPassed,
+      band,
+      siteId,
+      passageIndex,
+    } = body;
 
-  const supabase = await createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
 
-  // ⭐ Get parent_id
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    // ------------------------------------------------------------------------
+    // Authenticated parent
+    // ------------------------------------------------------------------------
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
-  const parentId = user.id;
-
-  // ⭐ Compute vocabulary score
-  const correctCount = questions.reduce((acc: number, q: any, i: number) => {
-    return acc + (answers[i] === q.correctIndex ? 1 : 0);
-  }, 0);
-
-  const scorePercent = Math.round(
-    (correctCount / questions.length) * 100
-  );
-
-  const vocabularyPassed = scorePercent === 100;
-
-  // ⭐ Load comprehension attempt to enforce gating
-  const { data: comprehensionAttempt } = await supabase
-    .from("reading_attempts")
-    .select("comprehension_passed")
-    .eq("kid_id", kidId)
-    .eq("band", band)
-    .eq("site_id", siteId)
-    .eq("passage_index", passageIndex)
-    .eq("attempt_type", "existing")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
-
-  const comprehensionPassed =
-    comprehensionAttempt?.comprehension_passed === true;
-
-  // ⭐ Load previous metrics snapshot
-  const { data: lastAttempt } = await supabase
-    .from("reading_attempts")
-    .select("metrics")
-    .eq("kid_id", kidId)
-    .eq("band", band)
-    .eq("site_id", siteId)
-    .eq("passage_index", passageIndex)
-    .eq("attempt_type", "existing")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
-
-  // ⭐ Merge old + new into a full snapshot
-  const fullMetrics = {
-    ...lastAttempt?.metrics,
-
-    // vocabulary updates
-    vocabularyScore: scorePercent,
-    vocabularyPassed,
-
-    // ensure fluency fields exist
-    accuracy: lastAttempt?.metrics?.accuracy ?? 0,
-    wpm: lastAttempt?.metrics?.wpm ?? 0,
-    errors: lastAttempt?.metrics?.errors ?? 0,
-    totalWords: lastAttempt?.metrics?.totalWords ?? 0,
-    totalSeconds: lastAttempt?.metrics?.totalSeconds ?? 0,
-    transcript: lastAttempt?.metrics?.transcript ?? "",
-
-    // ensure comprehension fields exist
-    comprehensionScore: lastAttempt?.metrics?.comprehensionScore ?? 0,
-    comprehensionPassed,
-
-    // ensure fluency flag exists
-    fluencyPassed: lastAttempt?.metrics?.fluencyPassed ?? false,
-  };
-
-  // ⭐ Save vocabulary attempt via RPC
-  const { error: rpcError } = await supabase.rpc(
-    "add_kid_reading_attempts",
-    {
-      p_attempt_type: "existing",
-      p_band: band,
-      p_fluency_passed: true,
-      p_kid_id: kidId,
-      p_parent_id: parentId,
-
-      // ⭐ full snapshot
-      p_metrics: fullMetrics,
-
-      p_passage_index: passageIndex,
-      p_site_id: siteId,
-
-      p_comprehension_passed: comprehensionPassed,
-      p_comprehension_score: lastAttempt?.metrics?.comprehensionScore ?? 0,
-
-      p_vocabulary_passed: vocabularyPassed,
-      p_vocabulary_score: scorePercent,
+    if (userError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 }
+      );
     }
-  );
 
-  if (rpcError) {
-    console.error("❌ Vocabulary RPC error:", rpcError);
+  // ⭐ Load progress (workout)
+  const { data: progress, error: progressError } = await supabase
+    .from("progress")
+    .select("workout")   // Added workout so we always get the current workout
+    .eq("kid_id", kidId)
+    .single();
+
+  if (progressError || !progress) {
+    // Possible for new kid not to have a progress record
+    console.log("[VOCAB API] Error reading workout from progress table.");
+
     return NextResponse.json(
-      { error: "Failed to save vocabulary attempt" },
+      { success: false, error: "Server error" },
       { status: 500 }
     );
   }
 
-  // ⭐ Advance progress only if BOTH comprehension + vocabulary passed
-  if (comprehensionPassed && vocabularyPassed) {
-    const advanceRes = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/kids/${kidId}/reading/api/progress/advance`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language: "en" }),
-      }
-    );
+	const { workout } = progress;
 
-// Check for workout completion
-// If comprehensionPassed && vocabularyPassed - get current workout value from passages for language, band, site_id, passage_index
-// select * from passages where language, band, workout = newWorkout order by site_id, passage_index.  If workout=3 then 
-// display results page (current results format ok).  If this works then combine all attempts to get an average and specific number of attempts to pass
-// 3. If all 3 passages are completed → redirect to the existing Results page
-//if (attemptsCount === 3) {
-//  return NextResponse.json({
-//    redirect: `/kids/${kidId}/reading/results?workout=${workoutNumber}`
-//  });
-//}
+  // ⭐ Load passage text (English)
+  const { data: passageRecord, error: passageError } = await supabase
+    .from("passages")
+    .select("text")
+    .eq("band", band)
+    .eq("workout", workout)
+    .eq("language", "en")
+    .single();
 
-// 4. Otherwise → continue to the next passage
-//return NextResponse.json({
-//  redirect: `/kids/${kidId}/reading?mode=existing`
-//});
+    if (passageError || !passageRecord) {
+      return NextResponse.json(
+        { success: false, error: "Passage not found" },
+        { status: 404 }
+      );
+    }
 
-    const advanceJson = await advanceRes.json();
+    // ⭐ Deterministic workout end check
+
+const workoutValue = Number(progress.workout);
+const workoutStep = Math.round((workoutValue % 1) * 10);
+
+console.log("[API ROUTE] workoutStep ", {workoutStep});
+
+const isWorkoutEnd = workoutStep === 3;
+const nextWorkout = (() => {
+  const major = Math.floor(workoutValue);
+  // Round to handle JavaScript floating-point errors
+  const minor = Math.round((workoutValue - major) * 10); 
+
+  if (minor >= 3) {
+    return major + 1 + 0.1; // Roll over to next major, minor starts at 1
+  } else {
+    return major + (minor + 1) / 10; // Standard increment
+  }
+})();
+
+    // ------------------------------------------------------------------------
+    // Load previous metrics snapshot
+    // ------------------------------------------------------------------------
+    const { data: lastAttempt } = await supabase
+      .from("reading_attempts")
+      .select("metrics")
+      .eq("kid_id", kidId)
+      .eq("band", band)
+      .eq("site_id", siteId)
+      .eq("passage_index", passageIndex)
+      .eq("attempt_type", "existing")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    // ------------------------------------------------------------------------
+    // Merge old + new metrics
+    // ------------------------------------------------------------------------
+    const fullMetrics = {
+      ...lastAttempt?.metrics,
+
+      vocabularyScore,
+      vocabularyPassed,
+
+      comprehensionScore: lastAttempt?.metrics?.comprehensionScore ?? 0,
+      comprehensionPassed: lastAttempt?.metrics?.comprehensionPassed ?? false,
+
+      accuracy: lastAttempt?.metrics?.accuracy ?? 0,
+      wpm: lastAttempt?.metrics?.wpm ?? 0,
+      errors: lastAttempt?.metrics?.errors ?? 0,
+      totalWords: lastAttempt?.metrics?.totalWords ?? 0,
+      totalSeconds: lastAttempt?.metrics?.totalSeconds ?? 0,
+      transcript: lastAttempt?.metrics?.transcript ?? "",
+
+      fluencyPassed: lastAttempt?.metrics?.fluencyPassed ?? false,
+    };
+
+    // ------------------------------------------------------------------------
+    // Write full snapshot
+    // ------------------------------------------------------------------------
+    const { error: rpcError } = await supabase.rpc("add_kid_reading_attempts", {
+      p_attempt_type: "existing",
+      p_band: band,
+      p_fluency_passed: fullMetrics.fluencyPassed ?? false,
+      p_kid_id: kidId,
+      p_parent_id: user.id,
+      p_metrics: fullMetrics,
+      p_passage_index: passageIndex,
+      p_site_id: siteId,
+      p_comprehension_passed: fullMetrics.comprehensionPassed ?? false,
+      p_comprehension_score: fullMetrics.comprehensionScore ?? 0,
+      p_vocabulary_passed: fullMetrics.vocabularyPassed ?? false,
+      p_vocabulary_score: fullMetrics.vocabularyScore ?? 0
+    });
+
+    if (rpcError) {
+      console.error("❌ RPC vocabulary insert error:", rpcError);
+      return NextResponse.json(
+        { success: false, error: rpcError.message },
+        { status: 500 }
+      );
+    }
+
+//------------------------------------------------------------
+// Write current workout to progress table
+//------------------------------------------------------------
+const { error: updateProgressError } = await supabase
+  .from("progress")
+  .update({
+    workout: nextWorkout,
+    updated_at: new Date().toISOString(),
+  })
+  .eq("kid_id", kidId);
+
+if (updateProgressError) {
+  console.error("Progress Update Error:", progressError);
+}
+    // ------------------------------------------------------------------------
+    // If workout end (.3), return results trigger
+    // ------------------------------------------------------------------------
+    if (isWorkoutEnd) {
+
+console.log("[API ROUTE] Workout End Detected");
+
+      return NextResponse.json({
+        success: true,
+        workoutComplete: true,
+        metrics: fullMetrics,
+        redirect: {
+          to: "results",
+        },
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // Otherwise compute next passage
+    // ------------------------------------------------------------------------
+    const nextPassageIndex = passageIndex + 1;
+
+console.log("[VOCAB API] workoutValue:", workoutValue);
+console.log("[VOCAB API] nextWorkout:", nextWorkout);
+console.log("[VOCAB API] isWorkoutEnd:", isWorkoutEnd);
+console.log("[VOCAB API] next passage:", {
+  band,
+  siteId,
+  nextPassageIndex,
+});
+
 
     return NextResponse.json({
-      vocabularyScore: scorePercent,
-      vocabularyPassed,
-      comprehensionPassed,
-      advanced: true,
-      next: advanceJson,
+      success: true,
+      workoutComplete: false,
+      metrics: fullMetrics,
+      redirect: {
+        to: "next",
+        band,
+        siteId,
+        passageIndex: nextPassageIndex,
+      },
     });
-  }
 
-  return NextResponse.json({
-    vocabularyScore: scorePercent,
-    vocabularyPassed,
-    comprehensionPassed,
-    advanced: false,
-  });
+  } catch (err) {
+    console.error("❌ Vocabulary API error:", err);
+    await logError("vocabulary route", err);
+
+    return NextResponse.json(
+      { success: false, error: "Server error" },
+      { status: 500 }
+    );
+  }
 }

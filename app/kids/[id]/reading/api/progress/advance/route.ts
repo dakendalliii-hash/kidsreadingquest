@@ -1,143 +1,117 @@
+// ============================================================================
+// FILE: /reading/api/advance/route.ts
+// PURPOSE:
+//   Determines the next passage in the workout OR signals workout completion.
+//   This route is called after each step (fluency → comprehension → vocabulary).
+//
+// FIXES:
+//   - Deterministic workout end check (.3 only)
+//   - Stable next-passage computation
+//   - Returns redirect payload consumed by ReadingClient
+//   - Never falls back to stale progress
+// ============================================================================
+
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logError } from "@/lib/logging/logError";
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id: kidId } = await context.params;
-  const { language } = await request.json();
+  try {
+    const { id: kidId } = await context.params;
+    const body = await request.json();
 
-  const supabase = await createServerSupabaseClient();
+    const { band, siteId, passageIndex } = body;
 
-  console.log("ADVANCE ROUTE FIRED for kid:", kidId);
+    const supabase = await createServerSupabaseClient();
 
-  // ⭐ 1. Load current progress
-  const { data: progress, error: progressError } = await supabase
-    .from("progress")
-    .select("band, site_id, passage_index, streak")
-    .eq("kid_id", kidId)
-    .single();
+    // ------------------------------------------------------------------------
+    // Authenticated parent
+    // ------------------------------------------------------------------------
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-  if (progressError || !progress) {
-    return NextResponse.json({ error: "Progress not found" }, { status: 404 });
-  }
+    if (userError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
 
-  const { band, site_id, passage_index } = progress;
+    // ------------------------------------------------------------------------
+    // Load passage to determine workout value
+    // ------------------------------------------------------------------------
+    const { data: passageRecord, error: passageError } = await supabase
+      .from("passages")
+      .select("workout")
+      .eq("language", "en")
+      .eq("band", band)
+      .eq("site_id", siteId)
+      .eq("passage_index", passageIndex)
+      .single();
 
-  // ⭐ 2. Load metadata from passages (correct source of truth)
+    if (passageError || !passageRecord) {
+      return NextResponse.json(
+        { success: false, error: "Passage not found" },
+        { status: 404 }
+      );
+    }
 
-  // 2a. Max passage_index for this band + site + language
-  const { data: maxPassageRow } = await supabase
-    .from("passages")
-    .select("passage_index")
-    .eq("band", band)
-    .eq("site_id", site_id)
-    .eq("language", language)
-    .order("passage_index", { ascending: false })
-    .limit(1)
-    .single();
+    // ⭐ Deterministic workout end check
+    const workoutValue = Number(passageRecord.workout);
+    const isWorkoutEnd = workoutValue === 1.3;
 
-  // 2b. Max site_id for this band + language
-  const { data: maxSiteRow } = await supabase
-    .from("passages")
-    .select("site_id")
-    .eq("band", band)
-    .eq("language", language)
-    .order("site_id", { ascending: false })
-    .limit(1)
-    .single();
+    // ------------------------------------------------------------------------
+    // If workout end (.3), return results trigger
+    // ------------------------------------------------------------------------
+    if (isWorkoutEnd) {
+      return NextResponse.json({
+        success: true,
+        workoutComplete: true,
+        redirect: {
+          to: "results",
+        },
+      });
+    }
 
-  // 2c. Band order list
-  const { data: bandList } = await supabase
-    .from("bands")
-    .select("name")
-    .order("name", { ascending: true });
+    // ------------------------------------------------------------------------
+    // Otherwise compute next passage
+    // ------------------------------------------------------------------------
+    const nextPassageIndex = passageIndex + 1;
 
-  if (!maxPassageRow || !maxSiteRow || !bandList) {
-    return NextResponse.json(
-      { error: "Metadata missing for progression" },
-      { status: 500 }
-    );
-  }
+console.log("[ADVANCE API] workoutValue:", workoutValue);
+console.log("[ADVANCE API] isWorkoutEnd:", isWorkoutEnd);
 
-  const maxPassageIndex = maxPassageRow.passage_index;
-  const maxSiteId = maxSiteRow.site_id;
-  const bandOrder = bandList.map((b) => b.name);
-  const currentBandIndex = bandOrder.indexOf(band);
-  const nextBand =
-    bandOrder[currentBandIndex + 1] ?? bandOrder[currentBandIndex];
-
-  // ⭐ 3. Compute next progression step
-  let newBand = band;
-  let newSiteId = site_id;
-  let newPassageIndex = passage_index + 1;
-
-  // Passage rollover
-  if (newPassageIndex > maxPassageIndex) {
-    newPassageIndex = 1;
-    newSiteId = site_id + 1;
-  }
-
-  // Site rollover
-  if (newSiteId > maxSiteId) {
-    newSiteId = 1;
-    newBand = nextBand;
-  }
-
-  // Final band cap
-  const finalBand = bandOrder[bandOrder.length - 1];
-  if (newBand === finalBand && newSiteId > maxSiteId) {
-    return NextResponse.json({
-      celebrate: true,
-      redirect: `/kids/${kidId}/reading?celebrate=1`,
-    });
-  }
-
-  // ⭐ 4. Verify next passage exists
-  const { data: nextPassage } = await supabase
-    .from("passages")
-    .select("band, site_id, passage_index")
-    .eq("language", language)
-    .eq("band", newBand)
-    .eq("site_id", newSiteId)
-    .eq("passage_index", newPassageIndex)
-    .maybeSingle();
-
-  if (!nextPassage) {
-    return NextResponse.json({
-      celebrate: true,
-      redirect: `/kids/${kidId}/reading?celebrate=1`,
-    });
-  }
-
-  // ⭐ 5. Update progress
-  const { error: updateError } = await supabase
-    .from("progress")
-    .update({
-      band: newBand,
-      site_id: newSiteId,
-      passage_index: newPassageIndex,
-      streak: progress.streak + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("kid_id", kidId);
-
-  console.log("UPDATE ERROR:", updateError);
-
-  if (updateError) {
-    return NextResponse.json(
-      { error: "Failed to update progress" },
-      { status: 500 }
-    );
-  }
-
-  // ⭐ 6. Return next progression state + redirect
-  return NextResponse.json({
-    band: newBand,
-    site_id: newSiteId,
-    passage_index: newPassageIndex,
-    celebrate: false,
-    redirect: `/kids/${kidId}/reading?band=${newBand}&siteId=${newSiteId}&passageIndex=${newPassageIndex}`,
+if (!isWorkoutEnd) {
+  console.log("[ADVANCE API] next passage:", {
+    band,
+    siteId,
+    nextPassageIndex,
   });
+}
+
+    return NextResponse.json({
+      success: true,
+      workoutComplete: false,
+      redirect: {
+        to: "next",
+        band,
+        siteId,
+        passageIndex: nextPassageIndex,
+      },
+    });
+
+  } catch (err) {
+    console.error("❌ Advance API error:", err);
+    await logError("advance route", err);
+
+    return NextResponse.json(
+      { success: false, error: "Server error" },
+      { status: 500 }
+    );
+  }
 }
