@@ -65,10 +65,13 @@ try {
   let passageIndex = Number(progress.passage_index);
 
   let currentWorkout = Number(progress.workout);
+  console.log("[READING PAGE] workout from progress:", currentWorkout);
 
-  if(siteId===1 && passageIndex===2){ currentWorkout=1.1 };
+  if(currentWorkout===0.0){ currentWorkout=1.1 };
+  console.log("[READING PAGE] workout from 0.0:", currentWorkout);
 
   if(!currentWorkout){ currentWorkout=0.0 };
+  console.log("[READING PAGE] workout from null", currentWorkout);
 
   // ⭐ Load passage text (English)
   const { data: passageData, error: passageError } = await supabase

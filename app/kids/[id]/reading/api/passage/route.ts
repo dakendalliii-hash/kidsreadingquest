@@ -32,9 +32,8 @@ export async function POST(
     language,
   });
 
-// Want to get workout from progress table (if possible)
     // ------------------------------------------------------------------------
-    // Load passage to determine workout value
+    // Check progress to determine workout value
     // ------------------------------------------------------------------------
     const { data: passageRecord, error: passageError } = await supabase
       .from("progress")
@@ -50,10 +49,14 @@ export async function POST(
     }
 
   let currentWorkout = Number(passageRecord.workout);
+  console.log("[PASSAGE API ROUTE] workout from progress:", currentWorkout);
 
-  if(siteId===1 && passageIndex===2){ currentWorkout=1.1 };
+  if(currentWorkout===0.0){ currentWorkout=1.1 };
+  console.log("[PASSAGE API ROUTE] workout from 0.0:", currentWorkout);
 
   if(!currentWorkout){ currentWorkout=0.0 };
+  console.log("[PASSAGE API ROUTE] workout from null:", currentWorkout);
+
 
 console.log("[PASSAGE API] Workout Value ", {currentWorkout});
 
