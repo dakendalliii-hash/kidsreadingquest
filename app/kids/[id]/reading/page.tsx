@@ -48,7 +48,7 @@ try {
   // ⭐ Load progress (band, site, passage_index, workout)
   const { data: progress, error: progressError } = await supabase
     .from("progress")
-    .select("band, site_id, passage_index,workout")   // Added workout so we always get the current workout
+    .select("band, site_id, passage_index, workout")   // Added workout so we always get the current workout
     .eq("kid_id", kidId)
     .single();
 
@@ -57,14 +57,25 @@ try {
     redirect(`/kids/${kidId}/read-aloud?lang=en`);
   }
 
-  const { band, site_id, passage_index, workout } = progress;   // Added workout for better tracking
+
+
+  const { band, site_id, passage_index, workout } = progress;   
+
+  let siteId = Number(progress.site_id);
+  let passageIndex = Number(progress.passage_index);
+
+  let currentWorkout = Number(progress.workout);
+
+  if(siteId===1 && passageIndex===2){ currentWorkout=1.1 };
+
+  if(!currentWorkout){ currentWorkout=0.0 };
 
   // ⭐ Load passage text (English)
   const { data: passageData, error: passageError } = await supabase
     .from("passages")
     .select("text")
     .eq("band", band)
-    .eq("workout", workout)
+    .eq("workout", currentWorkout)
     .eq("language", "en")
     .single();
 

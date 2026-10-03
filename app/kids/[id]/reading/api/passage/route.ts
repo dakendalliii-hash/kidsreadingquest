@@ -49,7 +49,12 @@ export async function POST(
       );
     }
 
-const currentWorkout = Number(passageRecord.workout);
+  let currentWorkout = Number(passageRecord.workout);
+
+  if(siteId===1 && passageIndex===2){ currentWorkout=1.1 };
+
+  if(!currentWorkout){ currentWorkout=0.0 };
+
 console.log("[PASSAGE API] Workout Value ", {currentWorkout});
 
   // ⭐ THIS is where .eq("language", language) belongs

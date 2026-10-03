@@ -57,7 +57,7 @@ export async function POST(
 
   if (progressError || !progress) {
     // Possible for new kid not to have a progress record
-    console.log("[VOCAB API] Error reading workout from progress table.");
+    console.log("[VOCAB API ROUTE] Error reading workout from progress table.");
 
     return NextResponse.json(
       { success: false, error: "Server error" },
@@ -85,10 +85,12 @@ export async function POST(
 
     // ⭐ Deterministic workout end check
 
-const workoutValue = Number(progress.workout);
+let workoutValue = Number(progress.workout);
 const workoutStep = Math.round((workoutValue % 1) * 10);
 
-console.log("[API ROUTE] workoutStep ", {workoutStep});
+if(workoutValue===0.0){ workoutValue=1.1 };
+
+console.log("[VOCAB API ROUTE] workoutStep ", {workoutStep});
 
 const isWorkoutEnd = workoutStep === 3;
 const nextWorkout = (() => {
@@ -185,7 +187,7 @@ if (updateProgressError) {
     // ------------------------------------------------------------------------
     if (isWorkoutEnd) {
 
-console.log("[API ROUTE] Workout End Detected");
+console.log("[VOCAB API ROUTE] Workout End Detected");
 
       return NextResponse.json({
         success: true,
@@ -202,10 +204,10 @@ console.log("[API ROUTE] Workout End Detected");
     // ------------------------------------------------------------------------
     const nextPassageIndex = passageIndex + 1;
 
-console.log("[VOCAB API] workoutValue:", workoutValue);
-console.log("[VOCAB API] nextWorkout:", nextWorkout);
-console.log("[VOCAB API] isWorkoutEnd:", isWorkoutEnd);
-console.log("[VOCAB API] next passage:", {
+console.log("[VOCAB API ROUTE] workoutValue:", workoutValue);
+console.log("[VOCAB API ROUTE] nextWorkout:", nextWorkout);
+console.log("[VOCAB API ROUTE] isWorkoutEnd:", isWorkoutEnd);
+console.log("[VOCAB API ROUTE] next passage:", {
   band,
   siteId,
   nextPassageIndex,
