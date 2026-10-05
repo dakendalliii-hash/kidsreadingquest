@@ -208,19 +208,18 @@ try {
                 >
                   <p><strong>Name:</strong> {kid.kid_name}</p>
                   <p><strong>Band:</strong> {kid.band}</p>
-                  <p><strong>Fitness Score:</strong> {'85'}</p>
-                  <p><strong>Daily Workout Completion:</strong> {'1'}</p>
-                  <p><strong>Weekly Progress:</strong> {'30%'}</p>
-                  <p><strong>Monthly Progress:</strong> {'60%'}</p>
-                  <p><strong>Speed Trend:</strong> {'Up 5'}</p>
-                  <p><strong>Accuracy Trend:</strong> {'Up 8'}</p>
-                  <p><strong>Error Pattern Trend:</strong> {'Down 10'}</p>
-                  <p><strong>Vocabulary Mastery Trend:</strong> {'Even'}</p>
-                  <p><strong>Comprehension Mastery Trend:</strong> {'Even'}</p>
-                  <p><strong>Next Workout:</strong> {'2'}</p>
+                  <p style={{ color: 'red' }}><strong>Fitness Score:</strong> {'85'}</p>
+                  <p style={{ color: 'red' }}><strong>Daily Workout Completion:</strong> {'1'}</p>
+                  <p style={{ color: 'red' }}><strong>Weekly Progress:</strong> {'30%'}</p>
+                  <p style={{ color: 'red' }}><strong>Monthly Progress:</strong> {'60%'}</p>
+                  <p style={{ color: 'red' }}><strong>Speed Trend:</strong> {'Up 5'}</p>
+                  <p style={{ color: 'red' }}><strong>Accuracy Trend:</strong> {'Up 8'}</p>
+                  <p style={{ color: 'red' }}><strong>Error Pattern Trend:</strong> {'Down 10'}</p>
+                  <p style={{ color: 'red' }}><strong>Vocabulary Mastery Trend:</strong> {'Even'}</p>
+                  <p style={{ color: 'red' }}><strong>Comprehension Mastery Trend:</strong> {'Even'}</p>
+                  <p style={{ color: 'red' }}><strong>Next Workout:</strong> {'2'}</p>
                   <p><strong>Site:</strong> {kid.site_id}</p>
                   <p><strong>Passage Index:</strong> {kid.passage_index}</p>
-                  <p><strong>Status:</strong> {derivedStatus}</p>
 
                   {/* Band-wide progress bar */}
                   <div

@@ -79,7 +79,7 @@ const endTimeRef = useRef<number | null>(null);
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;  // Copilot had recommended making this false, but trying true as an experiment
     recognition.lang = "en-US";
 
     let graceTimer: any = null;

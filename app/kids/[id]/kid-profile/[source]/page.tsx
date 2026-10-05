@@ -137,10 +137,10 @@ const lastWorkoutCompleted = Math.floor(currentWorkout-1);
         <div className="forward-card">
           <p><strong>Name:</strong> {kid.name}</p>
           <p><strong>Age:</strong> {kid.age}</p>
-<p><strong>Birthday:</strong> {'10/12/2021'} </p>
+<p><strong>Birthday:</strong> <span style={{ color: 'red' }}>10/12/2021</span></p>
           <p><strong>Band:</strong> {band}</p>
           <p><strong>Assessment Score:</strong> {assessmentScore}</p>
-<p><strong>Current Fitness Score:</strong> {'85'}</p>
+<p><strong>Current Fitness Score:</strong> <span style={{ color: 'red' }}>85</span></p>
           <p><strong>Reading Plan Type:</strong> {parentPlanType}</p>    
           <p><strong>Date Joined:</strong> {dateJoined}</p>
           <p><strong>Last Workout Date:</strong> {lastWorkoutDate ? new Date(lastWorkoutDate).toLocaleString() : "None"}</p>
