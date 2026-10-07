@@ -4,10 +4,10 @@ import { useState } from "react";
 
 interface ReadingVocabularyClientProps {
   kidId: string;
-  passageText: string;
   band: string;
   siteId: number;
   passageIndex: number;
+  isFinalWorkout: boolean; // true when the workout decimal is .3
   questions: {
     question: string;
     choices: string[];
@@ -17,10 +17,10 @@ interface ReadingVocabularyClientProps {
 
 export default function ReadingVocabularyClient({
   kidId,
-  passageText,
   band,
   siteId,
   passageIndex,
+  isFinalWorkout,
   questions,
 }: ReadingVocabularyClientProps) {
   const [answers, setAnswers] = useState<number[]>(
@@ -29,6 +29,8 @@ export default function ReadingVocabularyClient({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasQuestions = questions.length > 0;
+
   function selectAnswer(qIndex: number, choiceIndex: number) {
     const updated = [...answers];
     updated[qIndex] = choiceIndex;
@@ -36,18 +38,27 @@ export default function ReadingVocabularyClient({
   }
 
   async function handleSubmit() {
-    setSubmitting(true);
     setError(null);
 
+    if (hasQuestions && answers.includes(-1)) {
+      setError("Please answer all questions.");
+      return;
+    }
+
+    setSubmitting(true);
+
     try {
-      // Compute score
+      // Compute score. If a workout has no vocab questions, count it as a
+      // pass so the kid isn't stuck.
       const correctCount = questions.reduce((acc, q, i) => {
         return acc + (answers[i] === q.correctIndex ? 1 : 0);
       }, 0);
 
-      const scorePercent = Math.round(
-        (correctCount / questions.length) * 100
-      );
+      const scorePercent = hasQuestions
+        ? Math.round((correctCount / questions.length) * 100)
+        : 100;
+
+      const vocabularyPassed = scorePercent >= 70;
 
       console.log("[VOCAB CLIENT] submitting:", {
         band,
@@ -55,6 +66,8 @@ export default function ReadingVocabularyClient({
         passageIndex,
         answers,
         scorePercent,
+        vocabularyPassed,
+        isFinalWorkout,
       });
 
       // Submit to API
@@ -63,7 +76,7 @@ export default function ReadingVocabularyClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           vocabularyScore: scorePercent,
-          vocabularyPassed: scorePercent >= 70,
+          vocabularyPassed,
           band,
           siteId,
           passageIndex,
@@ -80,16 +93,22 @@ export default function ReadingVocabularyClient({
         return;
       }
 
-      // Workout complete → go to results
-      if (result.workoutComplete) {
-        console.log("[VOCAB CLIENT] workoutComplete → redirect to results");
+      // Final workout (.3) passed, or API says the workout is complete → results
+      if (result.workoutComplete || (vocabularyPassed && isFinalWorkout)) {
+        console.log("[VOCAB CLIENT] workout complete → redirect to results");
         window.location.href = `/kids/${kidId}/reading/results`;
         return;
       }
 
-      // Otherwise → go to next passage
+      // Otherwise → go wherever the API says to go next
       const next = result.redirect;
-      console.log("[VOCAB CLIENT] next passage redirect:", next);
+      console.log("[VOCAB CLIENT] next redirect:", next);
+
+      if (!next) {
+        setError("Could not determine the next step. Please try again.");
+        setSubmitting(false);
+        return;
+      }
 
       window.location.href =
         `/kids/${kidId}/reading?` +
@@ -124,6 +143,13 @@ export default function ReadingVocabularyClient({
       >
         Vocabulary Questions
       </h2>
+
+      {!hasQuestions && (
+        <p style={{ marginBottom: "20px" }}>
+          There are no vocabulary questions for this lesson yet. Let&apos;s
+          keep going!
+        </p>
+      )}
 
       {questions.map((q, qIndex) => (
         <div
@@ -186,7 +212,7 @@ export default function ReadingVocabularyClient({
           width: "100%",
         }}
       >
-        {submitting ? "Submitting..." : "Submit Answers"}
+        {submitting ? "Submitting..." : hasQuestions ? "Submit Answers" : "Continue"}
       </button>
     </div>
   );

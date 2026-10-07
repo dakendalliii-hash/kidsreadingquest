@@ -34,7 +34,7 @@ export default function NavBar({
             textDecoration: "none",
           }}
         >
-          Kids Read Quest
+          Kids Read Quest Home
         </Link>
       </div>
 

@@ -23,19 +23,20 @@ export default function ReadingComprehensionClient({
   passageIndex,
   questions,
 }: ReadingComprehensionClientProps) {
-
-
-  const [answers, setAnswers] = useState(
+  const [answers, setAnswers] = useState<number[]>(
     Array(questions.length).fill(-1)
   );
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function selectAnswer(
-  qIndex: number,
-  choiceIndex: number
-) {
+  const vocabularyUrl =
+    `/kids/${kidId}/reading/vocabulary?` +
+    `band=${band}&` +
+    `siteId=${siteId}&` +
+    `passageIndex=${passageIndex}`;
+
+  function selectAnswer(qIndex: number, choiceIndex: number) {
     const updated = [...answers];
     updated[qIndex] = choiceIndex;
     setAnswers(updated);
@@ -90,12 +91,7 @@ export default function ReadingComprehensionClient({
         return;
       }
 
-      // ⭐ FIX: pass override parameters to vocabulary
-      window.location.href =
-        `/kids/${kidId}/reading/vocabulary?` +
-        `band=${band}&` +
-        `siteId=${siteId}&` +
-        `passageIndex=${passageIndex}`;
+      window.location.href = vocabularyUrl;
     } catch (err) {
       console.error("[Comprehension] Error:", err);
       setError("Error saving comprehension results.");
@@ -104,30 +100,76 @@ export default function ReadingComprehensionClient({
     }
   }
 
+  const cardStyle = {
+    backgroundColor: "white",
+    padding: "30px",
+    borderRadius: "12px",
+    maxWidth: "900px",
+    margin: "0 auto",
+    color: "black",
+  } as const;
+
+  // Fallback when no questions exist for this band/workout
+  if (questions.length === 0) {
+    return (
+      <div style={cardStyle}>
+        <h2
+          style={{
+            marginBottom: "20px",
+            fontSize: "1.6rem",
+            fontWeight: "bold",
+          }}
+        >
+          Comprehension Questions
+        </h2>
+        <p style={{ marginBottom: "20px" }}>
+          There are no comprehension questions for this lesson yet. Let&apos;s
+          keep going!
+        </p>
+        <button
+          onClick={() => {
+            window.location.href = vocabularyUrl;
+          }}
+          style={{
+            backgroundColor: "#4CAF50",
+            color: "white",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "1rem",
+            width: "100%",
+          }}
+        >
+          Continue
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div style={{
-      backgroundColor: "white",
-      padding: "30px",
-      borderRadius: "12px",
-      maxWidth: "900px",
-      margin: "0 auto",
-      color: "black",
-    }}>
-      <h2 style={{
-        marginBottom: "20px",
-        fontSize: "1.6rem",
-        fontWeight: "bold",
-      }}>
+    <div style={cardStyle}>
+      <h2
+        style={{
+          marginBottom: "20px",
+          fontSize: "1.6rem",
+          fontWeight: "bold",
+        }}
+      >
         Comprehension Questions
       </h2>
 
       {questions.map((q, qIndex) => (
-        <div key={qIndex} style={{
-          marginBottom: "30px",
-          padding: "20px",
-          backgroundColor: "#fefce8",
-          borderRadius: "10px",
-        }}>
+        <div
+          key={qIndex}
+          style={{
+            marginBottom: "30px",
+            padding: "20px",
+            backgroundColor: "#fefce8",
+            borderRadius: "10px",
+          }}
+        >
           <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
             {qIndex + 1}. {q.question}
           </p>
@@ -150,14 +192,16 @@ export default function ReadingComprehensionClient({
       ))}
 
       {error && (
-        <div style={{
-          backgroundColor: "#ffe6e6",
-          padding: "12px",
-          borderRadius: "8px",
-          marginBottom: "20px",
-          color: "black",
-          fontWeight: "bold",
-        }}>
+        <div
+          style={{
+            backgroundColor: "#ffe6e6",
+            padding: "12px",
+            borderRadius: "8px",
+            marginBottom: "20px",
+            color: "black",
+            fontWeight: "bold",
+          }}
+        >
           {error}
         </div>
       )}

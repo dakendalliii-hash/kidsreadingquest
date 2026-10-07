@@ -5,43 +5,80 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import ReadingComprehensionClient from "./ReadingComprehensionClient";
 import { logError } from "@/lib/logging/logError";
 
-function generateComprehensionQuestions(passageText: string) {
-  const sentences = passageText
-    .split(/[.?!]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+// Questions are shuffled on every request, so this page must never be cached.
+export const dynamic = "force-dynamic";
 
-  const firstSentence = sentences[0] || passageText;
-  const randomSentence =
-    sentences[Math.floor(Math.random() * sentences.length)] || firstSentence;
+type ReadingQuestionRow = {
+  question_text: string;
+  correct_answer: string | number;
+  options: unknown;
+};
 
-  return [
-    {
-      question: "What is the passage mainly about?",
-      choices: [
-        "A description of a place",
-        "A list of instructions",
-        "A conversation between people",
-        "A story about animals",
-      ],
-      correctIndex: 0,
-    },
-    {
-      question: `What happens in this part of the passage: "${randomSentence}"?`,
-      choices: [
-        "Something moves or changes",
-        "Someone asks a question",
-        "A problem is solved",
-        "A character leaves the scene",
-      ],
-      correctIndex: 0,
-    },
-    {
-      question: "How does the narrator feel in the passage?",
-      choices: ["Curious", "Angry", "Sleepy", "Confused"],
-      correctIndex: 0,
-    },
-  ];
+type ComprehensionQuestion = {
+  question: string;
+  choices: string[];
+  correctIndex: number;
+};
+
+// Fisher-Yates shuffle (returns a new array)
+function shuffle<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// options is jsonb, so supabase-js normally returns a parsed array,
+// but fall back to JSON.parse in case it arrives as a string.
+function parseOptions(raw: unknown): string[] | null {
+  let value = raw;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  if (!Array.isArray(value) || value.length === 0) return null;
+  return value.map(String);
+}
+
+function buildQuestions(rows: ReadingQuestionRow[]): ComprehensionQuestion[] {
+  const questions: ComprehensionQuestion[] = [];
+
+  for (const row of rows) {
+    const options = parseOptions(row.options);
+    const correctIdx = Number(row.correct_answer);
+
+    if (
+      !options ||
+      !Number.isInteger(correctIdx) ||
+      correctIdx < 0 ||
+      correctIdx >= options.length
+    ) {
+      console.error("[COMPREHENSION PAGE] Skipping malformed question row:", row);
+      continue;
+    }
+
+    // Tag the correct option BEFORE shuffling so we can find it afterwards,
+    // even if two options happen to have identical text.
+    const tagged = options.map((text, i) => ({
+      text,
+      isCorrect: i === correctIdx,
+    }));
+    const shuffledOptions = shuffle(tagged);
+
+    questions.push({
+      question: row.question_text,
+      choices: shuffledOptions.map((o) => o.text),
+      correctIndex: shuffledOptions.findIndex((o) => o.isCorrect),
+    });
+  }
+
+  // Shuffle the question order too, so each try looks different.
+  return shuffle(questions);
 }
 
 export default async function Page({
@@ -59,10 +96,10 @@ export default async function Page({
     const { id: kidId } = await params;
     const supabase = await createServerSupabaseClient();
 
-    // ⭐ Load progress
+    // ⭐ Load progress (now includes the workout value)
     const { data: progress, error: progressError } = await supabase
       .from("progress")
-      .select("band, site_id, passage_index")
+      .select("band, site_id, passage_index, workout")
       .eq("kid_id", kidId)
       .single();
 
@@ -71,13 +108,11 @@ export default async function Page({
     }
 
     // ⭐ Read overrides from URL
+    const resolvedSearchParams = await searchParams;
 
-const resolvedSearchParams = await searchParams;
-
-const overrideBand = resolvedSearchParams.band;
-const overrideSiteId = resolvedSearchParams.siteId;
-const overridePassageIndex = resolvedSearchParams.passageIndex;
-
+    const overrideBand = resolvedSearchParams.band;
+    const overrideSiteId = resolvedSearchParams.siteId;
+    const overridePassageIndex = resolvedSearchParams.passageIndex;
 
     // ⭐ Apply overrides when present
     const band = overrideBand ?? progress.band;
@@ -86,11 +121,18 @@ const overridePassageIndex = resolvedSearchParams.passageIndex;
       ? Number(overridePassageIndex)
       : progress.passage_index;
 
+    // ⭐ Workout always comes from the progress table
+    const workout = Number(progress.workout);
+    if (progress.workout === null || Number.isNaN(workout)) {
+      throw new Error(`No workout value on progress row for kid=${kidId}`);
+    }
+
     console.log("[COMPREHENSION PAGE] effective:", {
       kidId,
       band,
       siteId,
       passageIndex,
+      workout,
       overrideBand,
       overrideSiteId,
       overridePassageIndex,
@@ -128,7 +170,31 @@ const overridePassageIndex = resolvedSearchParams.passageIndex;
       );
     }
 
-    const questionsData = generateComprehensionQuestions(passageData.text);
+    // ⭐ Load comprehension questions for this band + workout
+    const { data: questionRows, error: questionsError } = await supabase
+      .from("reading_questions")
+      .select("question_text, correct_answer, options")
+      .eq("band", band)
+      .eq("workout", workout)
+      .eq("question_type", "comprehension");
+
+    if (questionsError) {
+      throw new Error(
+        `Failed to load questions for band=${band}, workout=${workout}: ${questionsError.message}`
+      );
+    }
+
+    const questionsData = buildQuestions(
+      (questionRows ?? []) as ReadingQuestionRow[]
+    );
+
+console.log("[READ COMP PAGE] Query values:", {
+  band,
+  workout,
+  workoutType: typeof workout,
+});
+console.log("[READ COMP PAGE] Question Data:", { questionRows, questionsError });
+console.log("[READ COMP PAGE] Question Data: ", { questionRows });
 
     return (
       <ReadingComprehensionClient
@@ -140,9 +206,8 @@ const overridePassageIndex = resolvedSearchParams.passageIndex;
         questions={questionsData}
       />
     );
-  }  catch (error) {
-  console.error("SSR: comprehension", error);
-  throw error;
-}
-
+  } catch (error) {
+    console.error("SSR: comprehension", error);
+    throw error;
+  }
 }
