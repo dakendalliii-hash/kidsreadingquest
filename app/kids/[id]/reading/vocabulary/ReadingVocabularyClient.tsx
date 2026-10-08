@@ -124,11 +124,12 @@ export default function ReadingVocabularyClient({
   }
 
   return (
+<div style={{ paddingTop: "60px", paddingBottom: "10px" }}>
     <div
       style={{
         backgroundColor: "white",
         padding: "30px",
-        borderRadius: "12px",
+        borderRadius: "16px",
         maxWidth: "900px",
         margin: "0 auto",
         color: "black",
@@ -215,5 +216,6 @@ export default function ReadingVocabularyClient({
         {submitting ? "Submitting..." : hasQuestions ? "Submit Answers" : "Continue"}
       </button>
     </div>
+</div>
   );
 }

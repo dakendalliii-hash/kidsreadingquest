@@ -45,6 +45,7 @@ export default async function AssessmentResultsPage({
       .update({
         site_id: 1,          // workout 1.1 site
         passage_index: 2,    // workout 1.1 passage
+        workout: 1.1,
         updated_at: new Date().toISOString(),
       })
       .eq("kid_id", kidId);

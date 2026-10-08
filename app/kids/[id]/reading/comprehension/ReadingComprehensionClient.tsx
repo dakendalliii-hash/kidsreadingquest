@@ -149,6 +149,7 @@ export default function ReadingComprehensionClient({
   }
 
   return (
+<div style={{ paddingTop: "60px", paddingBottom: "10px" }}>
     <div style={cardStyle}>
       <h2
         style={{
@@ -224,5 +225,6 @@ export default function ReadingComprehensionClient({
         {submitting ? "Submitting..." : "Submit Answers"}
       </button>
     </div>
+</div>
   );
 }
