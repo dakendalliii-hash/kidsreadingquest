@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   const parentId = formData.get("parent_id") as string;
   const kidName = formData.get("kid_name") as string;
   const ageStr = formData.get("age") as string;
+  const birthDay = formData.get("birthday") as string;
 
   const age = parseInt(ageStr, 10);
   const band = bandFromAge(age);
@@ -39,6 +40,8 @@ export async function POST(req: NextRequest) {
     redirect("/parent/add-kid");
   }
 
+console.log("[ADD KID ROUTE] Birthday: ", birthDay);
+
   const { data: newKidId, error: rpcError } = await supabase.rpc(
     "create_kid_parent_records",
     {
@@ -46,6 +49,7 @@ export async function POST(req: NextRequest) {
       p_name: kidName,
       p_reading_level: band,
       p_age: age,
+      p_birthday: birthDay,
     }
   );
 

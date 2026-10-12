@@ -64,6 +64,7 @@ try {
     const name = formData.get("name") as string;
     const age = Number(formData.get("age"));
     const parentId = formData.get("parentId") as string;
+    const birthDay = formData.get("birthday") as string;
 
     // Compute band
     let band = "";
@@ -78,6 +79,7 @@ try {
         p_name: name,
         p_reading_level: band,
         p_age: age,
+        p_birthday: birthDay,
       }
     );
 

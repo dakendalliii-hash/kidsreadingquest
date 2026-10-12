@@ -85,7 +85,7 @@ export default async function KidProfilePage({
     // ⭐ Fetch last workout attempt (workouts only, not the assessment)
     const { data: lastAttempt } = await supabase
       .from("reading_attempts")
-      .select("created_at")
+      .select("*")
       .eq("kid_id", kidId)
       .eq("attempt_type", "existing")
       .order("created_at", { ascending: false })
@@ -93,6 +93,9 @@ export default async function KidProfilePage({
       .maybeSingle();
 
     const lastWorkoutDate = lastAttempt?.created_at ?? null;
+
+    const lastFitnessScore = lastAttempt?.metrics?.accuracy ?? "No attempt yet";
+
 
     // ⭐ Extract accuracy from metrics jsonb
     const assessmentScore =
@@ -132,14 +135,11 @@ export default async function KidProfilePage({
             <p><strong>Name:</strong> {kid.name}</p>
             <p><strong>Age:</strong> {kid.age}</p>
             <p>
-              <strong>Birthday:</strong>{" "}
-              <span style={{ color: "red" }}>10/12/2021</span>
-            </p>
+              <strong>Birthday:</strong> {kid.birthday}</p>
             <p><strong>Band:</strong> {band}</p>
             <p><strong>Assessment Score:</strong> {assessmentScore}</p>
             <p>
-              <strong>Current Fitness Score:</strong>{" "}
-              <span style={{ color: "red" }}>85</span>
+              <strong>Current Fitness Score:</strong> {lastFitnessScore}
             </p>
             <p><strong>Reading Plan Type:</strong> {parentPlanType}</p>
             <p><strong>Date Joined:</strong> {dateJoined}</p>
