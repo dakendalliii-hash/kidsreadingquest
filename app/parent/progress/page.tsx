@@ -3,12 +3,12 @@
 // =========================================================
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import FormContainer from "@/components/FormContainer";
 import { logError } from "@/lib/logging/logError";
-
 
 // =========================================================
 // SECTION 2 — Types
@@ -24,239 +24,478 @@ interface ParentKidProgress {
   updated_at: string;
 }
 
+// One finished passage (fluency + comprehension + vocabulary stages done)
+interface CompletedAttempt {
+  createdAt: Date;
+  wpm: number | null;
+  accuracy: number | null;
+  errors: number | null;
+  comprehension: number; // reading_attempts.comprehension_score
+  vocabulary: number; // reading_attempts.vocabulary_score
+}
+
+interface KidMetrics {
+  fitnessScore: string;
+  dailyCompletion: string;
+  weeklyProgress: string;
+  monthlyProgress: string;
+  speedTrend: string;
+  accuracyTrend: string;
+  errorTrend: string;
+  vocabularyTrend: string;
+  comprehensionTrend: string;
+}
+
 // =========================================================
-// SECTION 3 — Page Component
+// SECTION 3 — Report settings (adjust these to taste)
+// =========================================================
+
+// Day boundaries ("today") are calculated in this time zone.
+const REPORT_TIME_ZONE = "America/New_York";
+
+// Goals used for the daily / weekly / monthly completion numbers.
+const PASSAGES_PER_WORKOUT = 3; // a workout is x.1, x.2, x.3
+const WORKOUT_DAYS_PER_WEEK = 5;
+const WEEKLY_GOAL = PASSAGES_PER_WORKOUT * WORKOUT_DAYS_PER_WEEK; // 15 passages
+const MONTHLY_GOAL = WEEKLY_GOAL * 4; // 60 passages
+
+// Trends compare the latest N finished passages with the N before them.
+const TREND_WINDOW = 3;
+
+// Fitness score = average of accuracy, comprehension and vocabulary
+// over the latest N finished passages.
+const FITNESS_WINDOW = 5;
+
+// =========================================================
+// SECTION 4 — Metric helpers
+// =========================================================
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function toNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function mean(values: Array<number | null>): number | null {
+  const nums = values.filter((v): v is number => v !== null);
+  if (nums.length === 0) return null;
+  return nums.reduce((sum, v) => sum + v, 0) / nums.length;
+}
+
+function dayKey(date: Date): string {
+  // en-CA formats as YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: REPORT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function percentOfGoal(count: number, goal: number): string {
+  return `${Math.min(100, Math.round((count / goal) * 100))}%`;
+}
+
+// "percent" = relative change (speed, errors); "points" = simple difference
+// (accuracy, comprehension and vocabulary scores are already percentages).
+function trendLabel(
+  recent: number | null,
+  previous: number | null,
+  mode: "percent" | "points"
+): string {
+  if (recent === null || previous === null) return "Not enough data";
+
+  let change: number;
+  if (mode === "points") {
+    change = recent - previous;
+  } else {
+    if (previous === 0) return recent === 0 ? "Even" : "Up";
+    change = ((recent - previous) / previous) * 100;
+  }
+
+  const rounded = Math.round(Math.abs(change));
+  if (rounded < 1) return "Even";
+
+  return `${change > 0 ? "Up" : "Down"} ${rounded}${
+    mode === "percent" ? "%" : " pts"
+  }`;
+}
+
+// attempts must be sorted oldest → newest
+function computeKidMetrics(attempts: CompletedAttempt[], now: Date): KidMetrics {
+  const recent = attempts.slice(-TREND_WINDOW);
+  const previous = attempts.slice(-TREND_WINDOW * 2, -TREND_WINDOW);
+
+  const avg = (
+    group: CompletedAttempt[],
+    pick: (a: CompletedAttempt) => number | null
+  ) => mean(group.map(pick));
+
+  // Fitness score
+  const fitnessGroup = attempts.slice(-FITNESS_WINDOW);
+  const fitness = mean([
+    avg(fitnessGroup, (a) => a.accuracy),
+    avg(fitnessGroup, (a) => a.comprehension),
+    avg(fitnessGroup, (a) => a.vocabulary),
+  ]);
+
+  // Completion counts
+  const todayKey = dayKey(now);
+  const todayCount = attempts.filter(
+    (a) => dayKey(a.createdAt) === todayKey
+  ).length;
+  const weekCount = attempts.filter(
+    (a) => now.getTime() - a.createdAt.getTime() <= 7 * DAY_MS
+  ).length;
+  const monthCount = attempts.filter(
+    (a) => now.getTime() - a.createdAt.getTime() <= 30 * DAY_MS
+  ).length;
+
+  return {
+    fitnessScore: fitness === null ? "Not enough data" : String(Math.round(fitness)),
+    dailyCompletion: `${Math.min(todayCount, PASSAGES_PER_WORKOUT)} of ${PASSAGES_PER_WORKOUT} passages today`,
+    weeklyProgress: percentOfGoal(weekCount, WEEKLY_GOAL),
+    monthlyProgress: percentOfGoal(monthCount, MONTHLY_GOAL),
+    speedTrend: trendLabel(
+      avg(recent, (a) => a.wpm),
+      avg(previous, (a) => a.wpm),
+      "percent"
+    ),
+    accuracyTrend: trendLabel(
+      avg(recent, (a) => a.accuracy),
+      avg(previous, (a) => a.accuracy),
+      "points"
+    ),
+    errorTrend: trendLabel(
+      avg(recent, (a) => a.errors),
+      avg(previous, (a) => a.errors),
+      "percent"
+    ),
+    vocabularyTrend: trendLabel(
+      avg(recent, (a) => a.vocabulary),
+      avg(previous, (a) => a.vocabulary),
+      "points"
+    ),
+    comprehensionTrend: trendLabel(
+      avg(recent, (a) => a.comprehension),
+      avg(previous, (a) => a.comprehension),
+      "points"
+    ),
+  };
+}
+
+// =========================================================
+// SECTION 5 — Page Component
 // =========================================================
 export default async function ParentProgressReportPage() {
+  try {
+    const supabase = await createServerSupabaseClient();
 
-try {
+    // ------------------------------
+    // Auth check
+    // ------------------------------
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+    if (!user) redirect("/login");
 
-  const supabase = await createServerSupabaseClient();
+    // ------------------------------
+    // Verify parent
+    // ------------------------------
+    const { data: parentRecord } = await supabase
+      .from("parents")
+      .select("id")
+      .eq("auth_id", user.id)
+      .single();
 
-  // ------------------------------
-  // Auth check
-  // ------------------------------
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData?.user;
-  if (!user) redirect("/login");
+    if (!parentRecord) redirect("/unauthorized");
 
-  // ------------------------------
-  // Verify parent
-  // ------------------------------
-  const { data: parentRecord } = await supabase
-    .from("parents")
-    .select("id")
-    .eq("auth_id", user.id)
-    .single();
+    // ------------------------------
+    // Fetch progress for all kids
+    // ------------------------------
+    const { data: progressData, error } = await supabase.rpc(
+      "get_parent_kid_progress",
+      { p_parent_auth_id: user.id }
+    );
 
-  if (!parentRecord) redirect("/unauthorized");
-
-  // ------------------------------
-  // Fetch progress for all kids
-  // ------------------------------
-  const { data: progressData, error } = await supabase.rpc(
-    "get_parent_kid_progress",
-    { p_parent_auth_id: user.id }
-  );
-
-  if (error) {
-    console.error("❌ get_parent_kid_progress failed:", error);
-  }
-
-  // ------------------------------
-  // Total passages per band (across all sites)
-  // ------------------------------
-  const bandTotals: Record<string, number> = {};
-
-  if (progressData) {
-    for (const kid of progressData) {
-      const bandKey = kid.band;
-
-      if (!bandTotals[bandKey]) {
-        const { data: totalBandRows, error: totalBandError } = await supabase.rpc(
-          "get_all_passages_for_band",
-          { p_band: kid.band }
-        );
-
-        if (totalBandError) {
-          console.error("❌ get_all_passages_for_band failed:", totalBandError);
-          bandTotals[bandKey] = 1;
-        } else {
-          bandTotals[bandKey] = totalBandRows ?? 1;
-        }
-      }
+    if (error) {
+      console.error("❌ get_parent_kid_progress failed:", error);
     }
-  }
 
-  // ------------------------------
-  // Completed passages per kid (band-wide)
-  // ------------------------------
-  const completedCounts: Record<string, number> = {};
+    // ------------------------------
+    // Total passages per band (across all sites)
+    // ------------------------------
+    const bandTotals: Record<string, number> = {};
 
-  if (progressData) {
-    for (const kid of progressData) {
-      const key = `${kid.band}-${kid.site_id}-${kid.passage_index}`;
+    if (progressData) {
+      for (const kid of progressData) {
+        const bandKey = kid.band;
 
-      if (!completedCounts[key]) {
-        const { data: completedRows, error: completedError } = await supabase.rpc(
-          "get_completed_passages_for_band_position",
-          {
-            p_band: kid.band,
-            p_site_id: kid.site_id,
-            p_passage_index: kid.passage_index,
+        if (!bandTotals[bandKey]) {
+          const { data: totalBandRows, error: totalBandError } =
+            await supabase.rpc("get_all_passages_for_band", {
+              p_band: kid.band,
+            });
+
+          if (totalBandError) {
+            console.error(
+              "❌ get_all_passages_for_band failed:",
+              totalBandError
+            );
+            bandTotals[bandKey] = 1;
+          } else {
+            bandTotals[bandKey] = totalBandRows ?? 1;
           }
-        );
-
-        if (completedError) {
-          console.error("❌ get_completed_passages_for_band_position failed:", completedError);
-          completedCounts[key] = 0;
-        } else {
-          completedCounts[key] = completedRows ?? 0;
         }
       }
     }
-  }
 
-  // =========================================================
-  // SECTION 4 — Render
-  // =========================================================
-  return (
-    <div
-      style={{
-        backgroundImage: "url('/DiverseKids.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    // ------------------------------
+    // Completed passages per kid (band-wide)
+    // ------------------------------
+    const completedCounts: Record<string, number> = {};
+
+    if (progressData) {
+      for (const kid of progressData) {
+        const key = `${kid.band}-${kid.site_id}-${kid.passage_index}`;
+
+        if (!completedCounts[key]) {
+          const { data: completedRows, error: completedError } =
+            await supabase.rpc("get_completed_passages_for_band_position", {
+              p_band: kid.band,
+              p_site_id: kid.site_id,
+              p_passage_index: kid.passage_index,
+            });
+
+          if (completedError) {
+            console.error(
+              "❌ get_completed_passages_for_band_position failed:",
+              completedError
+            );
+            completedCounts[key] = 0;
+          } else {
+            completedCounts[key] = completedRows ?? 0;
+          }
+        }
+      }
+    }
+
+    // ------------------------------
+    // ⭐ reading_attempts → per-kid metrics (one query for all kids)
+    //
+    // Each stage of a passage (fluency, comprehension, vocabulary) writes its
+    // own row. A passage is finished when the vocabulary stage has run, which
+    // is the only row where BOTH fluency_passed and comprehension_passed are
+    // true. Assessment rows (attempt_type = 'assessment') are excluded.
+    // ------------------------------
+    const kidIds: string[] = (progressData ?? []).map(
+      (k: ParentKidProgress) => k.kid_id
+    );
+
+    const attemptsByKid: Record<string, CompletedAttempt[]> = {};
+    const workoutByKid: Record<string, number | null> = {};
+
+    if (kidIds.length > 0) {
+      const { data: attemptRows, error: attemptsError } = await supabase
+        .from("reading_attempts")
+        .select(
+          "kid_id, created_at, comprehension_score, vocabulary_score, metrics"
+        )
+        .in("kid_id", kidIds)
+        .eq("attempt_type", "existing")
+        .eq("fluency_passed", true)
+        .eq("comprehension_passed", true)
+        .order("created_at", { ascending: true });
+
+      if (attemptsError) {
+        console.error("❌ reading_attempts query failed:", attemptsError);
+      }
+
+      console.log("[PROGRESS REPORT] completed attempts loaded:", {
+        kids: kidIds.length,
+        rows: attemptRows?.length ?? 0,
+      });
+
+      for (const row of attemptRows ?? []) {
+        const m = (row.metrics ?? {}) as Record<string, unknown>;
+        (attemptsByKid[row.kid_id] ??= []).push({
+          createdAt: new Date(row.created_at),
+          wpm: toNumber(m.wpm),
+          accuracy: toNumber(m.accuracy),
+          errors: toNumber(m.errors),
+          comprehension: toNumber(row.comprehension_score) ?? 0,
+          vocabulary: toNumber(row.vocabulary_score) ?? 0,
+        });
+      }
+
+      // Current workout per kid (for "Next Workout")
+      const { data: workoutRows, error: workoutError } = await supabase
+        .from("progress")
+        .select("kid_id, workout")
+        .in("kid_id", kidIds);
+
+      if (workoutError) {
+        console.error("❌ progress workout query failed:", workoutError);
+      }
+
+      for (const row of workoutRows ?? []) {
+        workoutByKid[row.kid_id] = toNumber(row.workout);
+      }
+    }
+
+    const now = new Date();
+
+    // =========================================================
+    // SECTION 6 — Render
+    // =========================================================
+    return (
       <div
         style={{
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          flexGrow: 1,
+          backgroundImage: "url('/DiverseKids.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundAttachment: "fixed",
+          minHeight: "100vh",
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "40px",
+          flexDirection: "column",
         }}
       >
-        <FormContainer>
-          <div
-            style={{
-              backgroundColor: "rgba(255,255,255,0.9)",
-              borderRadius: "16px",
-              padding: "40px",
-              width: "85%",
-              maxWidth: "800px",
-              margin: "0 auto",
-              textAlign: "center",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-            }}
-          >
-            <h1
+        <div
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            flexGrow: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "40px",
+          }}
+        >
+          <FormContainer>
+            <div
               style={{
-                color: "black",
-                fontSize: "2rem",
-                fontWeight: "bold",
-                marginBottom: "25px",
+                backgroundColor: "rgba(255,255,255,0.9)",
+                borderRadius: "16px",
+                padding: "40px",
+                width: "85%",
+                maxWidth: "800px",
+                margin: "0 auto",
+                textAlign: "center",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
               }}
             >
-              Reading Progress Report
-            </h1>
+              <h1
+                style={{
+                  color: "black",
+                  fontSize: "2rem",
+                  fontWeight: "bold",
+                  marginBottom: "25px",
+                }}
+              >
+                Reading Progress Report
+              </h1>
 
-            {(!progressData || progressData.length === 0) && (
-              <p style={{ color: "black", fontSize: "1.1rem" }}>
-                No progress records found.
-              </p>
-            )}
+              {(!progressData || progressData.length === 0) && (
+                <p style={{ color: "black", fontSize: "1.1rem" }}>
+                  No progress records found.
+                </p>
+              )}
 
-            {/* ========================================================= */}
-            {/* SECTION 5 — Kid Progress Cards */}
-            {/* ========================================================= */}
-            {progressData?.map((kid: ParentKidProgress) => {
-              const totalBand = bandTotals[kid.band] ?? 1;
-              const key = `${kid.band}-${kid.site_id}-${kid.passage_index}`;
-              const completed = completedCounts[key] ?? 0;
+              {/* ========================================================= */}
+              {/* SECTION 7 — Kid Progress Cards */}
+              {/* ========================================================= */}
+              {progressData?.map((kid: ParentKidProgress) => {
+                const totalBand = bandTotals[kid.band] ?? 1;
+                const key = `${kid.band}-${kid.site_id}-${kid.passage_index}`;
+                const completed = completedCounts[key] ?? 0;
 
-              // Derived status
-              let derivedStatus: string;
-              if (completed <= 0) {
-                derivedStatus = "Not Started";
-              } else if (completed >= totalBand) {
-                derivedStatus = "Completed";
-              } else {
-                derivedStatus = "Reading";
-              }
+                // Derived status
+                let derivedStatus: string;
+                if (completed <= 0) {
+                  derivedStatus = "Not Started";
+                } else if (completed >= totalBand) {
+                  derivedStatus = "Completed";
+                } else {
+                  derivedStatus = "Reading";
+                }
 
-              const percent = Math.round((completed / totalBand) * 100);
+                const percent = Math.round((completed / totalBand) * 100);
 
-              return (
-                <div
-                  key={kid.kid_id}
-                  style={{
-                    backgroundColor: "rgba(255,255,255,0.95)",
-                    borderRadius: "10px",
-                    padding: "20px",
-                    marginBottom: "20px",
-                    textAlign: "left",
-                    color: "black",
-                    boxShadow: "0 0 10px rgba(0,0,0,0.2)",
-                  }}
-                >
-                  <p><strong>Name:</strong> {kid.kid_name}</p>
-                  <p><strong>Band:</strong> {kid.band}</p>
-                  <p style={{ color: 'red' }}><strong>Fitness Score:</strong> {'85'}</p>
-                  <p style={{ color: 'red' }}><strong>Daily Workout Completion:</strong> {'1'}</p>
-                  <p style={{ color: 'red' }}><strong>Weekly Progress:</strong> {'30%'}</p>
-                  <p style={{ color: 'red' }}><strong>Monthly Progress:</strong> {'60%'}</p>
-                  <p style={{ color: 'red' }}><strong>Speed Trend:</strong> {'Up 5'}</p>
-                  <p style={{ color: 'red' }}><strong>Accuracy Trend:</strong> {'Up 8'}</p>
-                  <p style={{ color: 'red' }}><strong>Error Pattern Trend:</strong> {'Down 10'}</p>
-                  <p style={{ color: 'red' }}><strong>Vocabulary Mastery Trend:</strong> {'Even'}</p>
-                  <p style={{ color: 'red' }}><strong>Comprehension Mastery Trend:</strong> {'Even'}</p>
-                  <p style={{ color: 'red' }}><strong>Next Workout:</strong> {'2'}</p>
-                  <p><strong>Site:</strong> {kid.site_id}</p>
-                  <p><strong>Passage Index:</strong> {kid.passage_index}</p>
+                // ⭐ Metrics from reading_attempts
+                const metrics = computeKidMetrics(
+                  attemptsByKid[kid.kid_id] ?? [],
+                  now
+                );
+                const workout = workoutByKid[kid.kid_id];
 
-                  {/* Band-wide progress bar */}
+                return (
                   <div
+                    key={kid.kid_id}
                     style={{
-                      marginTop: "15px",
-                      width: "100%",
-                      height: "20px",
-                      backgroundColor: "#ddd",
+                      backgroundColor: "rgba(255,255,255,0.95)",
                       borderRadius: "10px",
-                      overflow: "hidden",
+                      padding: "20px",
+                      marginBottom: "20px",
+                      textAlign: "left",
+                      color: "black",
+                      boxShadow: "0 0 10px rgba(0,0,0,0.2)",
                     }}
                   >
+                    <p><strong>Name:</strong> {kid.kid_name}</p>
+                    <p><strong>Band:</strong> {kid.band}</p>
+                    <p><strong>Fitness Score:</strong> {metrics.fitnessScore}</p>
+                    <p><strong>Daily Workout Completion:</strong> {metrics.dailyCompletion}</p>
+                    <p><strong>Weekly Progress:</strong> {metrics.weeklyProgress}</p>
+                    <p><strong>Monthly Progress:</strong> {metrics.monthlyProgress}</p>
+                    <p><strong>Speed Trend:</strong> {metrics.speedTrend}</p>
+                    <p><strong>Accuracy Trend:</strong> {metrics.accuracyTrend}</p>
+                    <p><strong>Error Pattern Trend:</strong> {metrics.errorTrend}</p>
+                    <p><strong>Vocabulary Mastery Trend:</strong> {metrics.vocabularyTrend}</p>
+                    <p><strong>Comprehension Mastery Trend:</strong> {metrics.comprehensionTrend}</p>
+                    <p>
+                      <strong>Next Workout:</strong>{" "}
+                      {workout != null ? workout.toFixed(1) : "N/A"}
+                    </p>
+                    <p><strong>Site:</strong> {kid.site_id}</p>
+                    <p><strong>Passage Index:</strong> {kid.passage_index}</p>
+
+                    {/* Band-wide progress bar */}
                     <div
                       style={{
-                        width: `${percent}%`,
-                        height: "100%",
-                        backgroundColor: "#4A90E2",
-                        transition: "width 0.3s ease",
+                        marginTop: "15px",
+                        width: "100%",
+                        height: "20px",
+                        backgroundColor: "#ddd",
+                        borderRadius: "10px",
+                        overflow: "hidden",
                       }}
-                    />
+                    >
+                      <div
+                        style={{
+                          width: `${percent}%`,
+                          height: "100%",
+                          backgroundColor: "#4A90E2",
+                          transition: "width 0.3s ease",
+                        }}
+                      />
+                    </div>
+
+                    <p style={{ marginTop: "5px", fontWeight: "bold" }}>
+                      {percent}% Complete
+                    </p>
                   </div>
-
-                  <p style={{ marginTop: "5px", fontWeight: "bold" }}>
-                    {percent}% Complete
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </FormContainer>
+                );
+              })}
+            </div>
+          </FormContainer>
+        </div>
       </div>
-    </div>
-  );
-
+    );
   } catch (error) {
+    // redirect() works by throwing; let Next.js handle those untouched
+    unstable_rethrow(error);
+
     await logError("SSR: app/parent/progress", error);
     throw error;
   }
-
 }
