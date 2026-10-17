@@ -97,6 +97,43 @@ function percentOfGoal(count: number, goal: number): string {
   return `${Math.min(100, Math.round((count / goal) * 100))}%`;
 }
 
+// Workouts are numbered 1.1, 1.2, 1.3, 2.1 ... (3 steps per whole number).
+// This turns a workout number into its position in that sequence:
+// 1.1 → 1, 1.3 → 3, 2.1 → 4, 67.1 → 199. Anything below 1.1 → 0.
+function workoutPosition(workout: number | null | undefined): number {
+  if (workout === null || workout === undefined || !Number.isFinite(workout)) {
+    return 0;
+  }
+  if (workout < 1) return 0;
+
+  const major = Math.floor(workout);
+  // Round to tenths to avoid floating-point noise (e.g. 2.3 - 2 = 0.2999...)
+  const minor = Math.round((workout - major) * 10);
+
+  return (major - 1) * PASSAGES_PER_WORKOUT + Math.max(minor, 1);
+}
+
+// progress.workout is the NEXT workout the kid will do, so every workout
+// before it is finished. Percent = finished workouts / largest workout.
+function workoutProgress(
+  currentWorkout: number | null | undefined,
+  maxWorkout: number | null | undefined
+) {
+  const total = workoutPosition(maxWorkout);
+  if (total <= 0) return { completed: 0, total: 0, percent: 0 };
+
+  const completed = Math.min(
+    total,
+    Math.max(0, workoutPosition(currentWorkout) - 1)
+  );
+
+  return {
+    completed,
+    total,
+    percent: Math.round((completed / total) * 100),
+  };
+}
+
 // "percent" = relative change (speed, errors); "points" = simple difference
 // (accuracy, comprehension and vocabulary scores are already percentages).
 function trendLabel(
@@ -223,61 +260,32 @@ export default async function ParentProgressReportPage() {
     }
 
     // ------------------------------
-    // Total passages per band (across all sites)
+    // ⭐ Largest workout number per band (from the passages table)
     // ------------------------------
-    const bandTotals: Record<string, number> = {};
+    const maxWorkoutByBand: Record<string, number | null> = {};
 
-    if (progressData) {
-      for (const kid of progressData) {
-        const bandKey = kid.band;
+    const bands: string[] = Array.from(
+      new Set<string>(
+        (progressData ?? []).map((k: ParentKidProgress) => k.band)
+      )
+    );
 
-        if (!bandTotals[bandKey]) {
-          const { data: totalBandRows, error: totalBandError } =
-            await supabase.rpc("get_all_passages_for_band", {
-              p_band: kid.band,
-            });
+    for (const band of bands) {
+      const { data: maxRow, error: maxError } = await supabase
+        .from("passages")
+        .select("workout")
+        .eq("band", band)
+        .eq("language", "en")
+        .not("workout", "is", null)
+        .order("workout", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-          if (totalBandError) {
-            console.error(
-              "❌ get_all_passages_for_band failed:",
-              totalBandError
-            );
-            bandTotals[bandKey] = 1;
-          } else {
-            bandTotals[bandKey] = totalBandRows ?? 1;
-          }
-        }
+      if (maxError) {
+        console.error("❌ max workout query failed:", { band, maxError });
       }
-    }
 
-    // ------------------------------
-    // Completed passages per kid (band-wide)
-    // ------------------------------
-    const completedCounts: Record<string, number> = {};
-
-    if (progressData) {
-      for (const kid of progressData) {
-        const key = `${kid.band}-${kid.site_id}-${kid.passage_index}`;
-
-        if (!completedCounts[key]) {
-          const { data: completedRows, error: completedError } =
-            await supabase.rpc("get_completed_passages_for_band_position", {
-              p_band: kid.band,
-              p_site_id: kid.site_id,
-              p_passage_index: kid.passage_index,
-            });
-
-          if (completedError) {
-            console.error(
-              "❌ get_completed_passages_for_band_position failed:",
-              completedError
-            );
-            completedCounts[key] = 0;
-          } else {
-            completedCounts[key] = completedRows ?? 0;
-          }
-        }
-      }
+      maxWorkoutByBand[band] = toNumber(maxRow?.workout);
     }
 
     // ------------------------------
@@ -405,28 +413,18 @@ export default async function ParentProgressReportPage() {
               {/* SECTION 7 — Kid Progress Cards */}
               {/* ========================================================= */}
               {progressData?.map((kid: ParentKidProgress) => {
-                const totalBand = bandTotals[kid.band] ?? 1;
-                const key = `${kid.band}-${kid.site_id}-${kid.passage_index}`;
-                const completed = completedCounts[key] ?? 0;
-
-                // Derived status
-                let derivedStatus: string;
-                if (completed <= 0) {
-                  derivedStatus = "Not Started";
-                } else if (completed >= totalBand) {
-                  derivedStatus = "Completed";
-                } else {
-                  derivedStatus = "Reading";
-                }
-
-                const percent = Math.round((completed / totalBand) * 100);
+                // ⭐ Progress by workout: current workout vs largest workout in the band
+                const workout = workoutByKid[kid.kid_id];
+                const { percent } = workoutProgress(
+                  workout,
+                  maxWorkoutByBand[kid.band]
+                );
 
                 // ⭐ Metrics from reading_attempts
                 const metrics = computeKidMetrics(
                   attemptsByKid[kid.kid_id] ?? [],
                   now
                 );
-                const workout = workoutByKid[kid.kid_id];
 
                 return (
                   <div
@@ -456,8 +454,8 @@ export default async function ParentProgressReportPage() {
                       <strong>Next Workout:</strong>{" "}
                       {workout != null ? workout.toFixed(1) : "N/A"}
                     </p>
-                    <p><strong>Site:</strong> {kid.site_id}</p>
-                    <p><strong>Passage Index:</strong> {kid.passage_index}</p>
+{/*                    <p><strong>Site:</strong> {kid.site_id}</p>
+                    <p><strong>Passage Index:</strong> {kid.passage_index}</p>  */}
 
                     {/* Band-wide progress bar */}
                     <div
